@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+  <!-- Basic Page Needs
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <meta charset="utf-8">
+  <title>Led Matrix</title>
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <!-- Mobile Specific Metas
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- FONT
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <!--<link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">-->
+
+  <!-- CSS
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <link rel="stylesheet" href="bulma.min.css">
+
+  <style>
+    input[type=range] {
+      -webkit-appearance: none;
+      margin: 18px 0;
+      width: 100%
+    }
+
+    input[type=range]:focus {
+      outline: none
+    }
+
+    input[type=range]::-webkit-slider-runnable-track {
+      width: 100%;
+      height: 8.4px;
+      cursor: pointer;
+      /* animate: 0.2s; */
+      animation: 0.2s;
+      box-shadow: 1px 1px 1px #000000, 0 0 1px #0d0d0d;
+      background: #3071a9;
+      border-radius: 1.3px;
+      border: .2px solid #010101
+    }
+
+    input[type=range]::-webkit-slider-thumb {
+      box-shadow: 1px 1px 1px #000000, 0 0 1px #0d0d0d;
+      border: 1px solid #000;
+      height: 36px;
+      width: 16px;
+      border-radius: 3px;
+      background: #fff;
+      cursor: pointer;
+      -webkit-appearance: none;
+      margin-top: -14px
+    }
+
+    input[type=range]:focus::-webkit-slider-runnable-track {
+      background: #367ebd
+    }
+
+    input[type=range]::-moz-range-track {
+      width: 100%;
+      height: 8.4px;
+      cursor: pointer;
+      /* animate: 0.2s; */
+      animation: 0.2s;
+      box-shadow: 1px 1px 1px #000000, 0 0 1px #0d0d0d;
+      background: #3071a9;
+      border-radius: 1.3px;
+      border: .2px solid #010101
+    }
+
+    input[type=range]::-moz-range-thumb {
+      box-shadow: 1px 1px 1px #000000, 0 0 1px #0d0d0d;
+      border: 1px solid #000;
+      height: 36px;
+      width: 16px;
+      border-radius: 3px;
+      background: #fff;
+      cursor: pointer
+    }
+
+    input[type=range]::-ms-track {
+      width: 100%;
+      height: 8.4px;
+      cursor: pointer;
+      /* animate: 0.2s; */
+      animation: 0.2s;
+      background: transparent;
+      border-color: transparent;
+      border-width: 16px 0;
+      color: transparent
+    }
+
+    input[type=range]::-ms-fill-lower {
+      background: #2a6495;
+      border: .2px solid #010101;
+      border-radius: 2.6px;
+      box-shadow: 1px 1px 1px #000000, 0 0 1px #0d0d0d
+    }
+
+    input[type=range]::-ms-fill-upper {
+      background: #3071a9;
+      border: .2px solid #010101;
+      border-radius: 2.6px;
+      box-shadow: 1px 1px 1px #000000, 0 0 1px #0d0d0d
+    }
+
+    input[type=range]::-ms-thumb {
+      box-shadow: 1px 1px 1px #000000, 0 0 1px #0d0d0d;
+      border: 1px solid #000;
+      height: 36px;
+      width: 16px;
+      border-radius: 3px;
+      background: #fff;
+      cursor: pointer
+    }
+
+    input[type=range]:focus::-ms-fill-lower {
+      background: #3071a9
+    }
+
+    input[type=range]:focus::-ms-fill-upper {
+      background: #367ebd
+    }
+  </style>
+
+
+  <!-- Favicon
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <link rel="icon" type="image/png" href="favicon.png">
+
+</head>
+
+<body>
+
+  <section>
+    <div id="modalDisconnected" class="modal">
+      <div class="modal-background"></div>
+      <div class="modal-content">
+        <!-- Any other Bulma elements you want -->
+        <article id="status_box" class="tile has-text-centered is-child notification is-danger is-marginless">
+          <p class="subtitle is-5 is-marginless">DISCONNECTED</p>
+          <p>Refresh the browser to reconnect.</p>
+        </article>
+      </div>
+      <button class="modal-close is-large" aria-label="close"></button>
+    </div>
+  </section>
+
+  <section class="hero is-info is-bold">
+    <!-- Hero head: will stick at the top -->
+    <div class="hero-head">
+      <nav class="navbar">
+        <div class="container">
+          <div class="navbar-brand">
+            <!--<a class="navbar-item">-->
+            <!--  <img src="https://bulma.io/images/bulma-type-white.png" alt="Logo">-->
+            <!--</a>-->
+            <span class="navbar-burger burger" data-target="navbarMenuHeroA">
+              <span></span>
+              <span></span>
+              <span></span>
+            </span>
+          </div>
+          <div id="navbarMenuHeroA" class="navbar-menu">
+            <div class="navbar-end">
+              <a class="navbar-item" href="/">
+                Home
+              </a>
+              <a class="navbar-item" href="configlocation.html">
+                Location
+              </a>
+              <a class="navbar-item" href="setrtctime.html">
+                Time & Date
+              </a>
+              <a class="navbar-item" href="configsholat.html">
+                Sholat Settings
+              </a>
+              <a class="navbar-item is-active" href="configledmatrix.html">
+                Led Matrix
+              </a>
+              <a class="navbar-item" href="configmqtt.html">
+                MQTT
+              </a>
+              <a class="navbar-item" href="confignetwork.html">
+                Network
+              </a>
+              <a class="navbar-item" href="status.html">
+                Status
+              </a>
+              <a class="navbar-item" href="menu.html">
+                Menu
+              </a>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </div>
+
+    <!-- Hero content: will be in the middle -->
+    <div class="hero-body">
+      <div class="container has-text-centered">
+        <h1 id="jumboCountdown" class="title is-size-3">
+          LED Matrix Settings
+        </h1>
+      </div>
+    </div>
+
+  </section>
+
+  <section class="section">
+    <div class="container">
+
+      <div class="columns is-centered">
+        <div class="column is-half is-narrow">
+
+
+          <div class="columns">
+            <!--<div class="column">-->
+            <!-- Column 1 content -->
+            <!--</div>-->
+            <div class="column">
+              <!-- Column 2 content -->
+              <div class="box">
+                <div class="content">
+
+                  <div class="field">
+                    <label class="label">Operating Mode</label>
+                    <div class="control">
+                      <div class="select">
+                        <!--<select id="operatingmode" name="operatingmode" onchange="something(this),sendFastConfig(this)">-->
+                        <select id="operatingmode" name="operatingmode" onchange="something(this); sendConfig()">
+                          <option style="display:none" label=" "></option>
+                          <option value="0">NORMAL MODE</option>
+                          <option value="1">CONFIG MODE</option>
+                          <option value="2">EDIT MODE</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="field" name="pagemode0">
+                    <label class="label">NORMAL MODE page</label>
+                    <div class="control">
+                      <div class="select">
+                        <!--<select id="pagemode0" name="pagemode0" onchange="sendFastConfig(this)">-->
+                        <select id="pagemode0" name="pagemode0" onchange="sendConfig()">
+                          <option style="display:none" label=" "></option>
+                          <option value="0">Jam & Tanggal</option>
+                          <option value="1">Waktu Menuju Sholat</option>
+                          <option value="2">Waktu Sholat Saat Ini</option>
+                          <option value="3">Jam Saja</option>
+                          <option value="4">Daya Listrik</option>
+                          <option value="5">Long Text</option>
+                          <option value="6">Jam dan Temperature</option>
+                          <option value="7">Sandbox</option>
+                          <option value="8">Waktu Menuju Sholat Type 2</option>
+                          <option value="9">Jam Saja Type 2</option>
+                          <option value="10">Sandbox 2</option>
+                          <option value="11">Waktu Iqamah</option>
+                          <option value="12">Jam & Tanggal Type 2</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="field" name="pagemode1">
+                    <label class="label">CONFIG Mode page</label>
+                    <div class="control">
+                      <div class="select">
+                        <!--<select id="pagemode1" name="pagemode1" onchange="sendFastConfig(this)">-->
+                        <select id="pagemode1" name="pagemode1" onchange="sendConfig()">
+                          <option style="display:none" label=" "></option>
+                          <option value="0">DEVICE NAME</option>
+                          <option value="1">SSID</option>
+                          <option value="2">IP ADDRESS</option>
+                          <option value="3">GATEWAY</option>
+                          <option value="4">NETMASK</option>
+                          <option value="5">MAC ADDRESS</option>
+                          <option value="6">DNS ADDRESS</option>
+                          <option value="7">LAST SYNC</option>
+                          <option value="8">TIME</option>
+                          <option value="9">DATE</option>
+                          <option value="10">UPTIME</option>
+                          <option value="11">LASTBOOT</option>
+                          <option value="12">FREEHEAP</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="field" name="pagemode2">
+                    <label class="label">EDIT Mode page</label>
+                    <div class="control">
+                      <div class="select">
+                        <!--<select id="pagemode2" name="pagemode2" onchange="sendFastConfig(this)">-->
+                        <select id="pagemode2" name="pagemode2" onchange="sendConfig()">
+                          <option style="display:none" label=" "></option>
+                          <option value="0">Set Lokasi</option>
+                          <option value="1">Set Tanggal</option>
+                          <option value="2">Set Jam</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="field">
+                    <label class="label">Page Sequence</label>
+                    <div class="control">
+                      <div class="select">
+                        <!--<select id="pagemode" name="pagemode" onchange="sendFastConfig(this)">-->
+                        <select id="pagemode" name="pagemode" onchange="sendConfig()">
+                          <option style="display:none" label=" "></option>
+                          <option value="Automatic">AUTOMATIC</option>
+                          <option value="Manual">MANUAL</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="field">
+                    <label class="label">Scroll</label>
+                    <div class="control">
+                      <label class="checkbox">
+                        <!--<input type="checkbox" id="scrollrow_0" name="scrollrow_0" onchange="sendFastConfig(this)"> Row 0-->
+                        <input type="checkbox" id="scrollrow_0" name="scrollrow_0" onchange="sendConfig()"> Row 0
+                      </label>
+                    </div>
+
+                    <div class="control">
+                      <label class="checkbox">
+                        <!--<input type="checkbox" id="scrollrow_1" name="scrollrow_1" onchange="sendFastConfig(this)"> Row 1-->
+                        <input type="checkbox" id="scrollrow_1" name="scrollrow_1" onchange="sendConfig()"> Row 1
+                      </label>
+                    </div>
+                  </div>
+
+                  <div class="field" id="btnSave-div" style="display: block;">
+                    <div class="field-label">
+                      <label class="label"></label>
+                    </div>
+                    <div class="field-body">
+                      <div class="field">
+                        <div class="control">
+                          <!--<a id="btnsaveconfig" name="btnsaveconfig" class="button is-info is-block" onclick="saveConfig(this)">-->
+                          <a id="btnsaveconfig" name="btnsaveconfig" class="button is-info is-block" onclick="sendConfig()">
+                            SAVE SETTINGS
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+
+                </div>
+              </div>
+            </div>
+
+            <div class="column">
+              <!-- Column 3 content -->
+              <div class="box">
+                <div class="content is-normal">
+
+                  <form>
+
+                    <div class="field">
+                      <label class="label">Scan Frequency =
+                        <output for="scrollspeedslider" id="scrollSpeedValue" name="scrollSpeedValue"></output>
+                      </label>
+                      <div class="control"  style="display: block!important;">
+                        <!--<input type="range" min="0" max="60" id="scrollspeedslider" name="scrollspeedslider" step="1" oninput="outputUpdate(this), sendFastConfig(this)"-->
+                        <input type="range" min="0" max="60" id="scrollspeedslider" name="scrollspeedslider" step="1" oninput="outputUpdate(this); sendConfigDelay(this)"
+                          onchange="">
+                      </div>
+                    </div>
+
+                    <div class="field">
+                      <label class="label">Brightness =
+                        <output for="brightnessslider" id="brightnessValue" name="brightnessValue"></output>
+                      </label>
+                      <div class="control">
+                        <!--<input type="range" min="0" max="1023" id="brightnessslider" name="brightnessslider" step="50" oninput="outputUpdate(this), sendFastConfig(this)"-->
+                        <input type="range" min="0" max="1023" id="brightnessslider" name="brightnessslider" step="50" oninput="outputUpdate(this), sendConfigDelay(this)"
+                          onchange="">
+                      </div>
+                    </div>
+
+                    <div class="field">
+                      <label class="label">Jeda Adzan</label>
+                      <div class="control">
+                        <input class="input" id="adzanwaittime" type="number" min="0" max="10">
+                      </div>
+                    </div>
+
+                    <div class="field">
+                      <label class="label">Jeda Iqamah</label>
+                      <div class="control">
+                        <input class="input" id="iqamahwaittime" type="number" min="0" max="10">
+                      </div>
+                    </div>
+
+
+                    <div class="field" id="btnSave-div" style="display: block;">
+                      <div class="field-label">
+                        <label class="label"></label>
+                      </div>
+                      <div class="field-body">
+                        <div class="field">
+                          <div class="control">
+                            <!--<a id="btnsaveconfig" name="btnsaveconfig" class="button is-info is-block" onclick="saveConfig(this)">-->
+                            <a id="btnsaveconfig" name="btnsaveconfig" class="button is-info is-block" onclick="sendConfig()">
+                              SAVE SETTINGS
+                            </a>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                  </form>
+
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="columns">
+
+            <div class="column">
+              <div class="box">
+
+                <form>
+
+                  <div class="field">
+                    <label class="label">Long Text</label>
+                    <div class="control">
+                      <!--<textarea class="textarea" type="text" placeholder="Normal textarea" id="longtext" name="longtext" rows="10" maxlength="461" onkeypress="process(event, this); auto_grow(this)"></textarea>-->
+                      <textarea class="textarea" type="text" placeholder="Normal textarea" id="longtext" name="longtext" rows="10" maxlength="461"
+                        onkeypress="process(event, this);"></textarea>
+                    </div>
+                    <p id="charLeft" class="help is-danger is-italic"></p>
+                  </div>
+
+                  <div class="field">
+                    <div class="control">
+                      <!--<button type="button" id="btnLongText" class="button is-warning is-block" onclick="sendFastConfig(this.form.longtext)">Update Long Text!</button>-->
+                      <button type="button" id="btnLongText" class="button is-warning is-block" onclick="sendLongText()">Update Long Text!</button>
+                    </div>
+                  </div>
+
+                </form>
+
+              </div>
+
+            </div>
+
+            <div class="column" style="display:none">
+            <!--<div class="column">-->
+              <div class="box">
+
+                <div class="buttons">
+                  <button type="button" id="btntesttone0" name="btntesttone0" class="button is-warning is-block" onclick="sendFastConfig(this)">Tone 0</button>
+                  <button type="button" id="btntesttone1" name="btntesttone1" class="button is-warning is-block" onclick="sendFastConfig(this)">Tone 1</button>
+                  <button type="button" id="btntesttone2" name="btntesttone2" class="button is-warning is-block" onclick="sendFastConfig(this)">Tone 2</button>
+                  <button type="button" id="btntesttone10" name="btntesttone10" class="button is-warning is-block" onclick="sendFastConfig(this)">Tone 10</button>
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <script src="bulma-ui.js"></script>
+  <script language="javascript" type="text/javascript">
+
+    var ws = null;
+    var longText;
+    var arrayBuffer;
+    var myVar;
+    var frequency;
+    var brightness;
+
+    window.onload = function () {
+      getConfigValues("config/ledmatrix");
+      getConfigValues("/runningtext.txt");
+      // startSocket();
+      //startEvents();
+    }
+    
+    function sendConfigDelay(element)
+    {
+      // setTimeout(function () { sendConfig(); }, 1000);
+      console.log(element);
+      var type = element.type;
+      var nodeName; var nodeId; var value; var text;
+      if (type == 'range') {
+        nodeName = element.nodeName; nodeId = element.id; value = element.value; text = null;
+      }
+      
+      if (nodeId === "scrollspeedslider")
+      {
+        clearTimeout(myVar);
+        if (frequency != value)
+        {
+          frequency == value;
+          myVar = setTimeout(function () { sendConfig(); }, 1000);
+        }
+        else
+        {
+          clearTimeout(myVar);
+        }
+      }
+      if (nodeId === "brightnessslider")
+      {
+        clearTimeout(myVar);
+        if (brightness != value)
+        {
+          brightness == value;
+          myVar = setTimeout(function () { sendConfig(); }, 1000);
+        }
+        else
+        {
+          clearTimeout(myVar);
+        }
+      }
+    }
+    
+    function sendConfig() {
+      var xhr = new XMLHttpRequest();
+      xhr.open("POST", '/configledmatrix', true);
+
+      //Send the proper header information along with the request
+      xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+      // xhr.setRequestHeader("Content-Type", "text/plain");
+      // xhr.setRequestHeader("Content-Type", "multipart/form-data");
+
+      xhr.onreadystatechange = function ()
+      {//Call a function when the state changes.
+        if (this.readyState == XMLHttpRequest.DONE && this.status == 200)
+        {
+          // Request finished. Do processing here.
+        }
+      }
+
+      var configJSON = prepareConfigJSON();
+      var config_str = "saveconfig=" + configJSON;
+      console.log(config_str);
+
+      xhr.send(config_str);
+    }
+    
+    function sendLongText() {
+      var xhr = new XMLHttpRequest();
+      xhr.open("POST", '/configledmatrix', true);
+
+      //Send the proper header information along with the request
+      xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+      // xhr.setRequestHeader("Content-Type", "text/plain");
+      // xhr.setRequestHeader("Content-Type", "multipart/form-data");
+
+      xhr.onreadystatechange = function ()
+      {//Call a function when the state changes.
+        if (this.readyState == XMLHttpRequest.DONE && this.status == 200)
+        {
+          // Request finished. Do processing here.
+        }
+      }
+
+      var longtext = document.getElementById("longtext").value;
+      var longtext_str = "longtext=" + longtext;
+      console.log(longtext_str);
+
+      xhr.send(longtext_str);
+    }
+
+    function prepareConfigJSON() {
+      let json = new Object();
+      // json.saveconfig = window.location.pathname;
+      json.operatingmode = parseInt(document.getElementById("operatingmode").value);
+      json.pagemode = document.getElementById("pagemode").value;
+      json.pagemode0 = parseInt(document.getElementById("pagemode0").value);
+      json.pagemode1 = parseInt(document.getElementById("pagemode1").value);
+      json.pagemode2 = parseInt(document.getElementById("pagemode2").value);
+      json.scrollrow_0 = document.getElementById("scrollrow_0").checked;
+      json.scrollrow_1 = document.getElementById("scrollrow_1").checked;
+      json.scrollspeed = parseInt(document.getElementById("scrollspeedslider").value);
+      json.brightness = parseInt(document.getElementById("brightnessslider").value);
+      json.adzanwaittime = parseInt(document.getElementById("adzanwaittime").value);
+      json.iqamahwaittime = parseInt(document.getElementById("iqamahwaittime").value);
+      
+      return (JSON.stringify(json));
+
+    }
+    
+    
+    function startSocket() {
+      ws = new WebSocket('ws://' + document.location.host + '/ws', ['arduino']);
+      ws.binaryType = "arraybuffer";
+      ws.onopen = function (evt) {
+        var obj = new Object();
+        obj.url = window.location.pathname;
+        var myJSON = JSON.stringify(obj);
+        // ws.send(myJSON);
+        ws.send(obj.url);
+
+        //ws.send(encodeWebSocket(longText));
+        //ws.send(arrayBuffer);
+        // if (arrayBuffer) {
+        //   var byteArray = new Uint8Array(arrayBuffer);
+        //   for (var i = 0; i < byteArray.length; i++) {
+        //     // do something with each byte in the array
+        //     console.log(String.fromCharCode(byteArray[i]));
+        //     ws.send(String.fromCharCode(byteArray[i]));
+        //   }
+        // }
+      };
+      ws.onclose = function (evt) {
+        console.log("WebSocket close. Code: " + evt.code + ", Reason: " + evt.reason);
+        // clearInterval(sendPingVar);
+        console.log(clearInterval.name);
+        // setMsg("active", "Disconnected");
+        if (ws.readyState == 3) {
+          // showDisconnected();
+          setTimeout(function () { showDisconnected(); }, 1000);
+        }
+      };
+      ws.onerror = function (evt) {
+        console.log("ws error", evt);
+      };
+      ws.onmessage = function (evt) {
+        var msg = "";
+        if (evt.data instanceof ArrayBuffer) {
+          msg = "BIN:";
+          var bytes = new Uint8Array(evt.data);
+          for (var i = 0; i < bytes.length; i++) {
+            msg += String.fromCharCode(bytes[i]);
+          }
+        } else {
+          msg = "TXT:" + evt.data;
+          console.log(msg);
+          if (isJSON(evt.data)) {
+            var json = JSON.parse(evt.data);
+            // document.getElementById("date").textContent = json.date;
+            // document.getElementById("time").textContent = json.time;
+            // document.getElementById("uptime").textContent = json.uptime;
+            // document.getElementById("lastsync").textContent = json.lastsync;
+            // document.getElementById("nextsync").textContent = json.nextsync;
+          }
+        }
+      };
+    }
+    // https://stackoverflow.com/questions/3710204/how-to-check-if-a-string-is-a-valid-json-string-in-javascript-without-using-try
+    function isJSON(str) {
+      try {
+        return (JSON.parse(str) && !!str);
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function getConfigValues(address) {
+      var req = new XMLHttpRequest();
+      if (req) {
+        req.open("GET", address, true);
+        req.addEventListener("load", reqListener);
+        req.timeout = 2000;
+        req.ontimeout = function (e) {
+          console.log("timeout");
+          req.abort();
+        };
+        req.send();
+      }
+    }
+    function reqListener() {
+      //console.log(this.responseText);
+      if (isJSON(this.responseText)) {
+        let json = JSON.parse(this.responseText);
+        console.log(json);
+        document.getElementById("operatingmode").value = parseInt(json.operatingmode);
+        document.getElementById("pagemode").value = json.pagemode;
+        document.getElementById("pagemode0").value = json.pagemode0;
+        document.getElementById("pagemode1").value = json.pagemode1;
+        document.getElementById("pagemode2").value = json.pagemode2;
+        document.getElementById("scrollrow_0").checked = json.scrollrow_0;
+        document.getElementById("scrollrow_1").checked = json.scrollrow_1;
+        document.getElementById("scrollspeedslider").value = json.scrollspeed;
+        document.getElementById("scrollSpeedValue").value = json.scrollspeed;
+        document.getElementById("brightnessslider").value = json.brightness;
+        document.getElementById("brightnessValue").value = json.brightness;
+        document.getElementById("adzanwaittime").value = json.adzanwaittime;
+        document.getElementById("iqamahwaittime").value = json.iqamahwaittime;
+
+        something(document.getElementById('operatingmode'));
+        // something();
+      }
+      else {
+        longText = this.responseText;
+        document.getElementById("longtext").value = longText;
+        charLeft();
+      }
+    }
+    function something(element) {
+      if (element == document.getElementById('operatingmode')) {
+        var text = element.options[element.selectedIndex].text;
+        console.log(text);
+        if (text == "NORMAL MODE") {
+          document.getElementsByName('pagemode0')[0].style.display = "inline-block";
+          document.getElementsByName('pagemode1')[0].style.display = "none";
+          document.getElementsByName('pagemode2')[0].style.display = "none";
+          // document.getElementsByName('pageMode1')[0].hidden = true;
+          // document.getElementsByName('pageMode2')[0].hidden = true;
+        }
+        else if (text == "CONFIG MODE") {
+          document.getElementsByName('pagemode0')[0].style.display = "none";
+          document.getElementsByName('pagemode1')[0].style.display = "inline-block";
+          document.getElementsByName('pagemode2')[0].style.display = "none";
+        }
+        else if (text == "EDIT MODE") {
+          document.getElementsByName('pagemode0')[0].style.display = "none";
+          document.getElementsByName('pagemode1')[0].style.display = "none";
+          document.getElementsByName('pagemode2')[0].style.display = "inline-block";
+        }
+      }
+    }
+    function saveConfig() {
+      let json = new Object();
+      json.saveconfig = window.location.pathname;
+      json.operatingmode = parseInt(document.getElementById("operatingmode").value);
+      json.pagemode = document.getElementById("pagemode").value;
+      json.pagemode0 = parseInt(document.getElementById("pagemode0").value);
+      json.pagemode1 = parseInt(document.getElementById("pagemode1").value);
+      json.pagemode2 = parseInt(document.getElementById("pagemode2").value);
+      json.scrollrow_0 = document.getElementById("scrollrow_0").checked;
+      json.scrollrow_1 = document.getElementById("scrollrow_1").checked;
+      json.scrollspeed = parseInt(document.getElementById("scrollspeedslider").value);
+      json.brightness = parseInt(document.getElementById("brightnessslider").value);
+      json.adzanwaittime = parseInt(document.getElementById("adzanwaittime").value);
+      json.iqamahwaittime = parseInt(document.getElementById("iqamahwaittime").value);
+      var myJSON = JSON.stringify(json);
+      ws.send(myJSON);
+      console.log("Data sent: ", myJSON);
+
+      var obj = new Object();
+      obj.longtext = document.getElementById("longtext").value;
+      var longtextJSON = JSON.stringify(obj);
+      ws.send(longtextJSON);
+      console.log("Data sent: ", longtextJSON);
+    }
+
+    var oReq = new XMLHttpRequest();
+    oReq.open("GET", "/runningtext.txt", true);
+    oReq.responseType = "arraybuffer";
+
+    oReq.onload = function (oEvent) {
+      arrayBuffer = oReq.response; // Note: not oReq.responseText
+      console.log(arrayBuffer);
+      //ws.send(arrayBuffer);
+      if (arrayBuffer) {
+        var byteArray = new Uint8Array(arrayBuffer);
+        for (var i = 0; i < byteArray.byteLength; i++) {
+          // do something with each byte in the array
+
+        }
+      }
+    };
+
+    oReq.send(null);
+
+
+    // https://stackoverflow.com/a/10402443
+    function encodeWebSocket(bytesRaw) {
+      var bytesFormatted = new Array();
+      bytesFormatted[0] = 129;
+      if (bytesRaw.length <= 125) {
+        bytesFormatted[1] = bytesRaw.length;
+      } else if (bytesRaw.length >= 126 && bytesRaw.length <= 65535) {
+        bytesFormatted[1] = 126;
+        bytesFormatted[2] = (bytesRaw.length >> 8) & 255;
+        bytesFormatted[3] = (bytesRaw.length) & 255;
+      } else {
+        bytesFormatted[1] = 127;
+        bytesFormatted[2] = (bytesRaw.length >> 56) & 255;
+        bytesFormatted[3] = (bytesRaw.length >> 48) & 255;
+        bytesFormatted[4] = (bytesRaw.length >> 40) & 255;
+        bytesFormatted[5] = (bytesRaw.length >> 32) & 255;
+        bytesFormatted[6] = (bytesRaw.length >> 24) & 255;
+        bytesFormatted[7] = (bytesRaw.length >> 16) & 255;
+        bytesFormatted[8] = (bytesRaw.length >> 8) & 255;
+        bytesFormatted[9] = (bytesRaw.length) & 255;
+      }
+      for (var i = 0; i < bytesRaw.length; i++) {
+        bytesFormatted.push(bytesRaw.charCodeAt(i));
+      }
+      return bytesFormatted;
+    }
+
+    function process(e) {
+      var code = (e.keyCode ? e.keyCode : e.which);
+      if (code == 13) { //Enter keycode
+        e.preventDefault();
+        //alert("Enter key is not allowed");
+      }
+    }
+
+    function auto_grow(element) {
+      element.style.height = "5px";
+      element.style.height = (element.scrollHeight) + "px";
+    }
+
+
+
+    // function sendConfig(element) {
+    //   console.log(element);
+    //   var type = element.type;
+    //   var nodeName; var nodeId; var value; var text;
+    //   if (type == 'select-one') {
+    //     nodeName = element.nodeName; nodeId = element.id; value = element.value; text = element.options[element.selectedIndex].text;
+    //   }
+    //   else if (type == 'checkbox') {
+    //     nodeName = element.nodeName; nodeId = element.id; value = element.checked; text = null;
+    //   }
+    //   else if (type == 'range') {
+    //     nodeName = element.nodeName; nodeId = element.id; value = element.value; text = null;
+    //   }
+    //   else if (type == 'textarea') {
+    //     nodeName = element.nodeName; nodeId = element.id; value = element.value; text = null;
+    //   }
+    //   else if (type == 'button') {
+    //     nodeName = element.nodeName; nodeId = element.id; value = 500; text = null;
+    //   }
+    //   console.log("nodeName:" + nodeName,"type:" + type,"nodeId:" + nodeId,"value:" + value,"text:" + text);
+    //   var obj = new Object();
+    //   obj.type = "matrixConfig";
+    //   obj.param = nodeId;
+    //   obj.value = value;
+    //   obj.text = text;
+    //   var myJSON = JSON.stringify(obj);
+    //   ws.send(myJSON);
+    //   console.log("Send data: ",myJSON);
+    // }
+
+    function sendFastConfig(element) {
+      console.log(element);
+      var type = element.type;
+      var nodeName; var nodeId; var value; var text;
+      if (type == 'select-one') {
+        nodeName = element.nodeName; nodeId = element.id; value = element.value; text = element.options[element.selectedIndex].text;
+      }
+      else if (type == 'checkbox') {
+        nodeName = element.nodeName; nodeId = element.id; value = element.checked; text = null;
+      }
+      else if (type == 'range') {
+        nodeName = element.nodeName; nodeId = element.id; value = element.value; text = null;
+      }
+      else if (type == 'textarea') {
+        nodeName = element.nodeName; nodeId = element.id; value = element.value; text = null;
+      }
+      else if (type == 'button') {
+        nodeName = element.nodeName; nodeId = element.id; value = 500; text = null;
+      }
+      console.log("nodeName:" + nodeName, "type:" + type, "nodeId:" + nodeId, "value:" + value, "text:" + text);
+      var obj = new Object();
+      obj.type = "matrixConfig";
+      obj.param = nodeId;
+      obj.value = value;
+      obj.text = text;
+      var myJSON = JSON.stringify(obj);
+      ws.send(myJSON);
+      console.log("Send data: ", myJSON);
+    }
+
+    function outputUpdate(element) {
+      console.log(element);
+      var type = element.type;
+      var nodeName; var nodeId; var value; var text;
+      if (type == 'select-one') {
+        nodeName = element.nodeName; nodeId = element.id; value = element.value; text = element.options[element.selectedIndex].text;
+      }
+      else if (type == 'checkbox') {
+        nodeName = element.nodeName; nodeId = element.id; value = element.checked; text = null;
+      }
+      else if (type == 'range') {
+        nodeName = element.nodeName; nodeId = element.id; value = element.value; text = null;
+      }
+      else if (type == 'textarea') {
+        nodeName = element.nodeName; nodeId = element.id; value = element.value; text = null;
+      }
+      else if (type == 'button') {
+        nodeName = element.nodeName; nodeId = element.id; value = element.label; text = null;
+      }
+      console.log("nodeName:" + nodeName, "type:" + type, "nodeId:" + nodeId, "value:" + value, "text:" + text);
+
+      if (nodeId == 'scrollspeedslider') {
+        document.querySelector('#scrollSpeedValue').value = element.value;
+      }
+      if (nodeId == 'brightnessslider') {
+        document.querySelector('#brightnessValue').value = element.value;
+      }
+    }
+
+    function charLeft() {
+      document.getElementById('charLeft').textContent = "Characters left: " + (461 - document.getElementById('longtext').value.length);
+    };
+
+    document.getElementById('longtext').onkeyup = function () {
+      document.getElementById('charLeft').textContent = "Characters left: " + (461 - this.value.length);
+    };
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,17 @@
+{
+  "timezonestring": "WIB-7",
+  "calcMethod": "Custom",
+  "asrJuristic": "Shafii",
+  "highLatsAdjustMethod": "None",
+  "fajrAngle": 20,
+  "maghribAngle": 1,
+  "ishaAngle": 18,
+  "offsetImsak": 0,
+  "offsetFajr": 0,
+  "offsetSunrise": 0,
+  "offsetDhuhr": 0,
+  "offsetAsr": 0,
+  "offsetSunset": 0,
+  "offsetMaghrib": 0,
+  "offsetIsha": 0
+}

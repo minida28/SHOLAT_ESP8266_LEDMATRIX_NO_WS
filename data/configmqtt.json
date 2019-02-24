@@ -1,0 +1,14 @@
+{
+  "enabled": true,
+  "server": "192.168.10.3",
+  "port": 1883,
+  "user": "test",
+  "pass": "test",
+  "clientid": "SHOLAT_2937814",
+  "keepalive": 30,
+  "cleansession": true,
+  "lwttopicprefix": "mqttstatus",
+  "lwtqos": 2,
+  "lwtretain": true,
+  "lwtpayload": "DISCONNECTED"
+}

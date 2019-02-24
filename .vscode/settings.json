@@ -1,0 +1,32 @@
+{
+    "terminal.integrated.env.windows": {
+        "PATH": "C:\\Users\\iqbal_2\\.platformio\\penv\\Scripts;C:\\Users\\iqbal_2\\.platformio\\penv;C:\\Program Files (x86)\\Common Files\\Oracle\\Java\\javapath;C:\\Python27\\;C:\\Python27\\Scripts;C:\\WINDOWS\\system32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem;C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\;C:\\Program Files\\LLVM\\bin;C:\\Program Files\\Git\\cmd;C:\\Program Files\\Git\\mingw64\\bin;C:\\Program Files\\Git\\usr\\bin;C:\\WINDOWS\\System32\\OpenSSH\\;C:\\Program Files (x86)\\National Instruments\\Shared\\LabVIEW CLI;C:\\Program Files (x86)\\IVI Foundation\\IVI\\bin;C:\\Program Files\\IVI Foundation\\IVI\\bin;C:\\Program Files (x86)\\IVI Foundation\\VISA\\WinNT\\Bin\\;C:\\Program Files\\IVI Foundation\\VISA\\Win64\\Bin\\;C:\\Program Files (x86)\\IVI Foundation\\VISA\\WinNT\\Bin;C:\\Users\\iqbal_2\\AppData\\Local\\Microsoft\\WindowsApps;;C:\\Users\\iqbal_2\\AppData\\Local\\Programs\\Microsoft VS Code\\bin;C:\\Program Files (x86)\\Common Files\\Oracle\\Java\\javapath;C:\\Python27\\;C:\\Python27\\Scripts;C:\\WINDOWS\\system32;C:\\WINDOWS;C:\\WINDOWS\\System32\\Wbem;C:\\WINDOWS\\System32\\WindowsPowerShell\\v1.0\\;C:\\Program Files\\LLVM\\bin;C:\\Program Files\\Git\\cmd;C:\\Program Files\\Git\\mingw64\\bin;C:\\Program Files\\Git\\usr\\bin;C:\\WINDOWS\\System32\\OpenSSH\\;C:\\Program Files (x86)\\National Instruments\\Shared\\LabVIEW CLI;C:\\Program Files (x86)\\IVI Foundation\\IVI\\bin;C:\\Program Files\\IVI Foundation\\IVI\\bin;C:\\Program Files (x86)\\IVI Foundation\\VISA\\WinNT\\Bin\\;C:\\Program Files\\IVI Foundation\\VISA\\Win64\\Bin\\;C:\\Program Files (x86)\\IVI Foundation\\VISA\\WinNT\\Bin;C:\\Users\\iqbal_2\\AppData\\Local\\Microsoft\\WindowsApps;;C:\\Users\\iqbal_2\\AppData\\Local\\Programs\\Microsoft VS Code\\bin",
+        "PLATFORMIO_CALLER": "vscode"
+    },
+    "C_Cpp.errorSquiggles": "Disabled",
+    "files.associations": {
+        "functional": "cpp",
+        "type_traits": "cpp",
+        "typeinfo": "cpp",
+        "array": "cpp",
+        "initializer_list": "cpp",
+        "ostream": "cpp",
+        "deque": "cpp",
+        "unordered_map": "cpp",
+        "vector": "cpp",
+        "list": "cpp",
+        "cstdlib": "cpp",
+        "*.tcc": "cpp",
+        "fstream": "cpp",
+        "bitset": "cpp",
+        "sstream": "cpp",
+        "limits": "cpp"
+    },
+    // "arduino.path": "C:/Program Files (x86)/Arduino",
+    // "arduino.commandPath": "run-arduino.bat",
+    // "arduino.additionalUrls": "",
+    "arduino.logLevel": "verbose",
+    "arduino.enableUSBDetection": true,
+    // "arduino.disableTestingOpen": false,
+    // "arduino.skipHeaderProvider": false,
+}

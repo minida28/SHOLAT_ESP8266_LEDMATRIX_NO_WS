@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+  <!-- Basic Page Needs
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <meta charset="utf-8">
+  <title>Sholat Settings</title>
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <!-- Mobile Specific Metas
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- FONT
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <!--<link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">-->
+
+  <!-- CSS
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <link rel="stylesheet" href="bulma.min.css">
+
+  <style>
+  </style>
+
+
+  <!-- Favicon
+  –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+  <link rel="icon" type="image/png" href="favicon.png">
+
+</head>
+
+<body>
+
+
+  <section class="hero is-info is-bold">
+    <!-- Hero head: will stick at the top -->
+    <div class="hero-head">
+      <nav class="navbar">
+        <div class="container">
+          <div class="navbar-brand">
+            <!--<a class="navbar-item">-->
+            <!--  <img src="https://bulma.io/images/bulma-type-white.png" alt="Logo">-->
+            <!--</a>-->
+            <span class="navbar-burger burger" data-target="navbarMenuHeroA">
+              <span></span>
+              <span></span>
+              <span></span>
+            </span>
+          </div>
+          <div id="navbarMenuHeroA" class="navbar-menu">
+            <div class="navbar-end">
+              <a class="navbar-item" href="/">
+                Home
+              </a>
+              <a class="navbar-item" href="configlocation.html">
+                Location
+              </a>
+              <a class="navbar-item" href="setrtctime.html">
+                Time & Date
+              </a>
+              <a class="navbar-item is-active" href="configsholat.html">
+                Sholat Settings
+              </a>
+              <a class="navbar-item" href="configledmatrix.html">
+                Led Matrix
+              </a>
+              <a class="navbar-item" href="configmqtt.html">
+                MQTT
+              </a>
+              <a class="navbar-item" href="confignetwork.html">
+                Network
+              </a>
+              <a class="navbar-item" href="status.html">
+                Status
+              </a>
+              <a class="navbar-item" href="menu.html">
+                Menu
+              </a>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </div>
+
+    <!-- Hero content: will be in the middle -->
+    <div class="hero-body">
+      <div class="container has-text-centered">
+        <h1 id="jumboCountdown" class="title is-size-3">
+          Sholat Settings
+        </h1>
+      </div>
+    </div>
+
+  </section>
+
+  <div id="modalDisconnected" class="modal">
+    <div class="modal-background"></div>
+    <div class="modal-content">
+      <!-- Any other Bulma elements you want -->
+      <article id="status_box" class="tile has-text-centered is-child notification is-danger is-marginless">
+        <p class="subtitle is-5 is-marginless">DISCONNECTED</p>
+        <p>Refresh the browser to reconnect.</p>
+      </article>
+    </div>
+    <button class="modal-close is-large" aria-label="close"></button>
+  </div>
+
+
+
+  <section class="section">
+    <div class="container">
+
+
+      <div class="columns is-centered">
+        <div class="column is-narrow">
+
+
+
+          <div class="columns">
+            <!--<div class="column">-->
+            <!-- Column 1 content -->
+            <!--</div>-->
+            <div class="column">
+              <!-- Column 2 content -->
+              <div class="box">
+                <div class="content is-small">
+
+                  <table class="table is-narrow">
+                    <tbody>
+                      <tr class="is-selected">
+                        <td>
+                          <p class="has-text-weight-bold">LOKASI</p>
+                        </td>
+                        <td>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td class="has-text-weight-bold">Kota/Kab.</td>
+                        <td>
+                          <span id="city" name="city"></span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td class="has-text-weight-bold">Latitude</td>
+                        <td>
+                          <span id="latitude" name="latitude"></span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td class="has-text-weight-bold">Longitude</td>
+                        <td>
+                          <span id="longitude" name="longitude"></span>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td class="has-text-weight-bold">Time Zone</td>
+                        <td>
+                          <span id="timezone" name="timezone"></span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+
+
+                </div>
+              </div>
+            </div>
+
+            <div class="column">
+              <!-- Column 3 content -->
+              <div class="box">
+                <div class="content">
+
+                  <form>
+
+                    <div class="field">
+                      <label class="label is-small">Calculation Method</label>
+                      <div class="control">
+                        <div class="select is-small">
+                          <select id="calcMethod" name="calcMethod" onchange="something(this.value)">
+                            <option style="display:none"></option>
+                            <option value="Jafari" label="Jafari">Jafari</option>
+                            <option value="Karachi" label="Karachi">Karachi</option>
+                            <option value="ISNA" label="ISNA">ISNA</option>
+                            <option value="MWL" label="MWL">MWL</option>
+                            <option value="Makkah" label="Makkah">Makkah</option>
+                            <option value="Egypt" label="Egypt">Egypt</option>
+                            <option value="Custom" label="Custom">Custom</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="field">
+                      <label class="label is-small">Ashr Juristic Method</label>
+                      <div class="control">
+                        <div class="select is-small">
+                          <select id="asrJuristic" name="asrJuristic">
+                            <option style="display:none" label=" "></option>
+                            <option value="Shafii">Shafii</option>
+                            <option value="Hanafi">Hanafi</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="field">
+                      <label class="label is-small">High Latitude Adjusment Method</label>
+                      <div class="control">
+                        <div class="select is-small">
+                          <select id="highLatsAdjustMethod" name="highLatsAdjustMethod">
+                            <option style="display:none" label=" "></option>
+                            <option value="None">None</option>
+                            <option value="MidNight">MidNight</option>
+                            <option value="OneSeventh">OneSeventh</option>
+                            <option value="AngleBased">AngleBased</option>
+                          </select>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="field">
+                      <label class="label is-small">Fajr Angle</label>
+                      <div class="control">
+                        <input class="input is-small" id="fajrAngle" name="fajrAngle" maxlength="2">
+                      </div>
+                    </div>
+
+                    <div class="field">
+                      <label class="label is-small">Maghrib Minutes</label>
+                      <div class="control">
+                        <input class="input is-small" id="maghribAngle" name="maghribAngle" maxlength="2">
+                      </div>
+                    </div>
+
+                    <div class="field">
+                      <label class="label is-small">Isha Angle</label>
+                      <div class="control">
+                        <input class="input is-small" id="ishaAngle" name="ishaAngle" maxlength="2">
+                      </div>
+                    </div>
+
+                    <div class="field">
+                      <label class="label is-small">Offset</label>
+                      <div class="control">
+
+                        <div class="content is-small">
+
+                          <table class="table is-narrow is-borderless">
+                            <tbody>
+                              <!--<tr class="is-selected">-->
+                              <!--  <td>-->
+                              <!--    <p class="has-text-weight-bold">OFFSET</p>-->
+                              <!--  </td>-->
+                              <!--  <td>-->
+                              <!--  </td>-->
+                              <!--</tr>-->
+                              <tr>
+                                <td>
+                                  Imsak
+                                </td>
+                                <td>
+                                  <div class="select">
+                                    <select id="offsetImsak" name="offsetImsak">
+                                      <option style="visibility: hidden" label=""></option>
+                                      <option value="-5">-5</option>
+                                      <option value="-4">-4</option>
+                                      <option value="-3">-3</option>
+                                      <option value="-2">-2</option>
+                                      <option value="-1">-1</option>
+                                      <option value="0">+0</option>
+                                      <option value="1">+1</option>
+                                      <option value="2">+2</option>
+                                      <option value="3">+3</option>
+                                      <option value="4">+4</option>
+                                      <option value="5">+5</option>
+                                    </select>
+                                  </div>
+                                  minute
+                                </td>
+                              </tr>
+                              <tr>
+                                <td>
+                                  Fajr
+                                </td>
+                                <td>
+                                  <div class="select">
+                                    <select id="offsetFajr" name="offsetFajr">
+                                      <option style="display:none" label=""></option>
+                                      <option value="-5">-5</option>
+                                      <option value="-4">-4</option>
+                                      <option value="-3">-3</option>
+                                      <option value="-2">-2</option>
+                                      <option value="-1">-1</option>
+                                      <option value="0">+0</option>
+                                      <option value="1">+1</option>
+                                      <option value="2">+2</option>
+                                      <option value="3">+3</option>
+                                      <option value="4">+4</option>
+                                      <option value="5">+5</option>
+                                    </select>
+                                  </div>
+                                  minute
+                                </td>
+                              </tr>
+                              <tr>
+                                <td>
+                                  Syuruq
+                                </td>
+                                <td>
+                                  <div class="select">
+                                    <select id="offsetSunrise" name="offsetSunrise">
+                                      <option style="display:none" label=""></option>
+                                      <option value="-5">-5</option>
+                                      <option value="-4">-4</option>
+                                      <option value="-3">-3</option>
+                                      <option value="-2">-2</option>
+                                      <option value="-1">-1</option>
+                                      <option value="0">+0</option>
+                                      <option value="1">+1</option>
+                                      <option value="2">+2</option>
+                                      <option value="3">+3</option>
+                                      <option value="4">+4</option>
+                                      <option value="5">+5</option>
+                                    </select>
+                                  </div>
+                                  minute
+                                </td>
+                              </tr>
+                              <tr>
+                                <td>
+                                  Dhuhr
+                                </td>
+                                <td>
+                                  <div class="select">
+                                    <select id="offsetDhuhr" name="offsetDhuhr">
+                                      <option style="display:none" label=""></option>
+                                      <option value="-5">-5</option>
+                                      <option value="-4">-4</option>
+                                      <option value="-3">-3</option>
+                                      <option value="-2">-2</option>
+                                      <option value="-1">-1</option>
+                                      <option value="0">+0</option>
+                                      <option value="1">+1</option>
+                                      <option value="2">+2</option>
+                                      <option value="3">+3</option>
+                                      <option value="4">+4</option>
+                                      <option value="5">+5</option>
+                                    </select>
+                                  </div>
+                                  minute
+                                </td>
+                              </tr>
+                              <tr>
+                                <td>
+                                  Ashr
+                                </td>
+                                <td>
+                                  <div class="select">
+                                    <select id="offsetAsr" name="offsetAsr">
+                                      <option style="display:none" label=""></option>
+                                      <option value="-5">-5</option>
+                                      <option value="-4">-4</option>
+                                      <option value="-3">-3</option>
+                                      <option value="-2">-2</option>
+                                      <option value="-1">-1</option>
+                                      <option value="0">+0</option>
+                                      <option value="1">+1</option>
+                                      <option value="2">+2</option>
+                                      <option value="3">+3</option>
+                                      <option value="4">+4</option>
+                                      <option value="5">+5</option>
+                                    </select>
+                                  </div>
+                                  minute
+                                </td>
+                              </tr>
+                              <tr>
+                                <td>
+                                  Sunset
+                                </td>
+                                <td>
+                                  <div class="select">
+                                    <select id="offsetSunset" name="offsetSunset">
+                                      <option style="display:none" label=""></option>
+                                      <option value="-5">-5</option>
+                                      <option value="-4">-4</option>
+                                      <option value="-3">-3</option>
+                                      <option value="-2">-2</option>
+                                      <option value="-1">-1</option>
+                                      <option value="0">+0</option>
+                                      <option value="1">+1</option>
+                                      <option value="2">+2</option>
+                                      <option value="3">+3</option>
+                                      <option value="4">+4</option>
+                                      <option value="5">+5</option>
+                                    </select>
+                                  </div>
+                                  minute
+                                </td>
+                              </tr>
+                              <tr>
+                                <td>
+                                  Maghrib
+                                </td>
+                                <td>
+                                  <div class="select">
+                                    <select id="offsetMaghrib" name="offsetMaghrib">
+                                      <option style="display:none" label=""></option>
+                                      <option value="-5">-5</option>
+                                      <option value="-4">-4</option>
+                                      <option value="-3">-3</option>
+                                      <option value="-2">-2</option>
+                                      <option value="-1">-1</option>
+                                      <option value="0">+0</option>
+                                      <option value="1">+1</option>
+                                      <option value="2">+2</option>
+                                      <option value="3">+3</option>
+                                      <option value="4">+4</option>
+                                      <option value="5">+5</option>
+                                    </select>
+                                  </div>
+                                  minute
+                                </td>
+                              </tr>
+                              <tr>
+                                <td>
+                                  Isha
+                                </td>
+                                <td>
+                                  <div class="select">
+                                    <select id="offsetIsha" name="offsetIsha">
+                                      <option style="display:none" label=""></option>
+                                      <option value="-5">-5</option>
+                                      <option value="-4">-4</option>
+                                      <option value="-3">-3</option>
+                                      <option value="-2">-2</option>
+                                      <option value="-1">-1</option>
+                                      <option value="0">+0</option>
+                                      <option value="1">+1</option>
+                                      <option value="2">+2</option>
+                                      <option value="3">+3</option>
+                                      <option value="4">+4</option>
+                                      <option value="5">+5</option>
+                                    </select>
+                                  </div>
+                                  minute
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+
+
+                        </div>
+
+
+                      </div>
+                    </div>
+
+                    <div class="field" id="btnSave-div" style="display: block;">
+                      <div class="field-label">
+                        <label class="label is-small"></label>
+                      </div>
+                      <div class="field-body">
+                        <div class="field">
+                          <div class="control">
+                            <a id="btnSave" class="button is-info is-block is-small" onclick="sendConfig();">
+                              SAVE SETTINGS
+                            </a>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+
+
+                  </form>
+
+                </div>
+              </div>
+            </div>
+          </div>
+
+
+        </div>
+      </div>
+
+
+
+
+    </div>
+  </section>
+
+  <!--<script id='papaparse' src="papaparse.min.js" type="text/javascript" charset="utf-8"></script>-->
+  <script src="bulma-ui.js"></script>
+  <script language="javascript" type="text/javascript">
+
+    var ws = null;
+    var json;
+
+    window.onload = function () {
+      getConfigValues("config/sholat");
+      something();
+      // startSocket();
+    }
+    function startSocket() {
+      ws = new WebSocket('ws://' + document.location.host + '/ws', ['arduino']);
+      ws.binaryType = "arraybuffer";
+      ws.onopen = function (evt) {
+        var obj = new Object();
+        obj.url = window.location.pathname;
+        var myJSON = JSON.stringify(obj);
+        ws.send(myJSON);
+      };
+      ws.onclose = function (evt) {
+        console.log("WebSocket close. Code: " + evt.code + ", Reason: " + evt.reason);
+        // clearInterval(sendPingVar);
+        console.log(clearInterval.name);
+        // setMsg("active", "Disconnected");
+        if (ws.readyState == 3) {
+          // showDisconnected();
+          setTimeout(function () { showDisconnected(); }, 1000);
+        }
+      };
+      ws.onerror = function (evt) {
+        console.log("ws error", evt);
+      };
+      ws.onmessage = function (evt) {
+        var msg = "";
+        if (evt.data instanceof ArrayBuffer) {
+          msg = "BIN:";
+          var bytes = new Uint8Array(evt.data);
+          for (var i = 0; i < bytes.length; i++) {
+            msg += String.fromCharCode(bytes[i]);
+          }
+        } else {
+          msg = "TXT:" + evt.data;
+          console.log(msg);
+          if (isJSON(evt.data)) {
+            var json = JSON.parse(evt.data);
+          }
+        }
+      };
+    }
+    // https://stackoverflow.com/questions/3710204/how-to-check-if-a-string-is-a-valid-json-string-in-javascript-without-using-try
+    function isJSON(str) {
+      try {
+        return (JSON.parse(str) && !!str);
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function getConfigValues(address) {
+      var req = new XMLHttpRequest();
+      if (req) {
+        req.open("GET", address, true);
+        req.addEventListener("load", reqListener);
+        req.send();
+      }
+    }
+    function reqListener() {
+      if (isJSON(this.responseText)) {
+        json = JSON.parse(this.responseText);
+        console.log(this.responseText);
+        //document.getElementById('confLocation').value = json.location;
+        // document.getElementById('province').textContent = json.province;
+        document.getElementById('city').textContent = json.district;
+        document.getElementById('latitude').textContent = json.latitude;
+        document.getElementById('longitude').textContent = json.longitude;
+        document.getElementById('timezone').textContent = timeZoneString(json.timezonestring);
+        document.getElementById('calcMethod').value = json.calcMethod;
+        document.getElementById('asrJuristic').value = json.asrJuristic;
+        document.getElementById('highLatsAdjustMethod').value = json.highLatsAdjustMethod;
+        document.getElementById('fajrAngle').value = json.fajrAngle;
+        document.getElementById('maghribAngle').value = json.maghribAngle;
+        document.getElementById('ishaAngle').value = json.ishaAngle;
+        document.getElementById('offsetImsak').value = json.offsetImsak;
+        document.getElementById('offsetFajr').value = json.offsetFajr;
+        document.getElementById('offsetSunrise').value = json.offsetSunrise;
+        document.getElementById('offsetDhuhr').value = json.offsetDhuhr;
+        document.getElementById('offsetAsr').value = json.offsetAsr;
+        document.getElementById('offsetSunset').value = json.offsetSunset;
+        document.getElementById('offsetMaghrib').value = json.offsetMaghrib;
+        document.getElementById('offsetIsha').value = json.offsetIsha;
+        something();
+      }
+      else {
+        console.log("Data received: ", json);
+      }
+    }
+
+    function sendConfig(element) {
+      json.saveconfig = window.location.pathname;
+      delete json.province;
+      delete json.regency;
+      delete json.district;
+      delete json.timezone;
+      delete json.latitude;
+      delete json.longitude;
+      json.calcMethod = document.getElementById('calcMethod').value;
+      json.asrJuristic = document.getElementById('asrJuristic').value;
+      json.highLatsAdjustMethod = document.getElementById('highLatsAdjustMethod').value;
+      json.fajrAngle = parseInt(document.getElementById('fajrAngle').value);
+      json.maghribAngle = parseInt(document.getElementById('maghribAngle').value);
+      json.ishaAngle = parseInt(document.getElementById('ishaAngle').value);
+      json.offsetImsak = parseFloat(document.getElementById('offsetImsak').value);
+      json.offsetFajr = parseFloat(document.getElementById('offsetFajr').value);
+      json.offsetSunrise = parseFloat(document.getElementById('offsetSunrise').value);
+      json.offsetDhuhr = parseFloat(document.getElementById('offsetDhuhr').value);
+      json.offsetAsr = parseFloat(document.getElementById('offsetAsr').value);
+      json.offsetSunset = parseFloat(document.getElementById('offsetSunset').value);
+      json.offsetMaghrib = parseFloat(document.getElementById('offsetMaghrib').value);
+      json.offsetIsha = parseFloat(document.getElementById('offsetIsha').value);
+      var myJSON = JSON.stringify(json);
+      ws.send(myJSON);
+      console.log("Data sent: ", myJSON);
+    }
+
+
+
+    function setMsg(cls, text) {
+      sbox = document.getElementById('status_box');
+      sbox.className = "siimple-alert siimple-alert--" + cls;
+      sbox.textContent = text;
+      //console.log(text);
+    }
+
+    // https://stackoverflow.com/questions/3710204/how-to-check-if-a-string-is-a-valid-json-string-in-javascript-without-using-try
+    function isJSON(str) {
+      try {
+        return (JSON.parse(str) && !!str);
+      } catch (e) {
+        return false;
+      }
+    }
+
+
+    function something() {
+      var calcMethod = document.getElementById('calcMethod').value;
+      console.log("calcMethod:", calcMethod);
+      if (calcMethod != "Custom") {
+        document.getElementById('fajrAngle').disabled = true;
+        document.getElementById('maghribAngle').disabled = true;
+        document.getElementById('ishaAngle').disabled = true;
+      } else {
+        document.getElementById('fajrAngle').disabled = false;
+        document.getElementById('maghribAngle').disabled = false;
+        document.getElementById('ishaAngle').disabled = false;
+      }
+
+      var location = document.getElementById('city').value;
+      if (location != "Custom") {
+        document.getElementById('latitude').readOnly = true;
+        document.getElementById('longitude').readOnly = true;
+        document.getElementById('latitude').style.color = "#999999";
+        document.getElementById('longitude').style.color = "#999999";
+      } else {
+        document.getElementById('latitude').readOnly = false;
+        document.getElementById('longitude').readOnly = false;
+        document.getElementById('latitude').style.color = "#000000";
+        document.getElementById('longitude').style.color = "#000000";
+      }
+    }
+
+    var allResults = [];
+
+    function timeZoneString(val) {
+      var tzStr;
+      if (val == "WIB-7") {
+        tzStr = "WIB";
+      } else if (val == "WITA-8") {
+        tzStr = "WITA";
+      } else if (val == "WIT-9") {
+        tzStr = "WIT";
+      }
+
+      return tzStr;
+    }
+
+  </script>
+</body>
+
+</html>
