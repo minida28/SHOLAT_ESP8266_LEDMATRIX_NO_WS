@@ -47,6 +47,7 @@ timespec tp;
 timeval cbtime; // time set in callback
 
 bool timeSetFlag = false;
+bool syncTimeFromRtcFlag = false;
 bool syncByRtcFlag = false;
 bool syncByNtpFlag = false;
 bool internetAccess = true;
@@ -54,6 +55,7 @@ bool y2k38mode = false;
 
 uint32_t now;
 uint32_t localTime;
+uint32_t utcTime;
 uint32_t uptime;
 uint32_t lastSync;          ///< Stored time of last successful sync
 uint32_t lastSyncByNtp = 0; ///< Stored time of last successful sync
@@ -75,6 +77,7 @@ uint16_t longSyncInterval;  ///< Interval to set periodic time sync
 
 Ticker state250msTimer;
 Ticker state500msTimer;
+Ticker syncTimeFromRtcTicker;
 
 strConfigTime _configTime;
 strTimeSource timeSource;
@@ -320,6 +323,11 @@ void FlipState500ms()
   state500ms = !state500ms;
 }
 
+void RaiseSyncTimeFromRtcFlag()
+{
+  syncTimeFromRtcFlag = true;
+}
+
 #define PTM(w)              \
   Serial.print(":" #w "="); \
   Serial.print(tm->tm_##w);
@@ -377,14 +385,80 @@ void TimeSetup()
     configTime(0, 0, _configTime.ntpserver_0, _configTime.ntpserver_1, _configTime.ntpserver_2);
   }
 
-  if (_configTime.enablertc && (!internetAccess || lastSyncByNtp == 0 || WiFi.status() != WL_CONNECTED || !_configTime.enablentp))
+  // if (_configTime.enablertc && (!internetAccess || lastSyncByNtp == 0 || WiFi.status() != WL_CONNECTED || !_configTime.enablentp))
+  // {
+  //   uint32_t rtc = get_time_from_rtc();
+
+  //   if (rtc > _configTime.lastsync)
+  //   {
+  //     syncByRtcFlag = true;
+
+  //     lastSyncByRtc = rtc;
+  //     _configTime.lastsync = rtc;
+  //     save_config_time();
+
+  //     timeval tv = {rtc, 0};
+  //     timezone tz = {0, 0};
+  //     settimeofday(&tv, &tz);
+  //   }
+  //   else
+  //   {
+  //     // timestamp error
+  //   }
+  // }
+}
+
+void TimeLoop()
+{
+  // if (_configTime.enablertc && (!internetAccess || lastSyncByNtp == 0 || WiFi.status() != WL_CONNECTED || !_configTime.enablentp))
+  // {
+  //   static uint32_t lastSyncByRtc_old = 0;
+
+  //   if (millis() - lastSyncByRtc_old > _configTime.syncinterval * 1000)
+  //   {
+  //     lastSyncByRtc_old = millis();
+
+  //     uint32_t rtc = get_time_from_rtc();
+  //     if (rtc > _configTime.lastsync)
+  //     {
+  //       syncByRtcFlag = true;
+
+  //       lastSyncByRtc = rtc;
+  //       _configTime.lastsync = rtc;
+  //       save_config_time();
+
+  //       timeval tv = {rtc, 0};
+  //       timezone tz = {0, 0};
+  //       settimeofday(&tv, &tz);
+  //     }
+  //     else
+  //     {
+  //       // timestamp error
+  //     }
+  //   }
+  // }
+
+  if (lastSyncByNtp == 0 && !syncTimeFromRtcTicker.active())
   {
+    syncTimeFromRtcTicker.once(15, RaiseSyncTimeFromRtcFlag);
+  }
+  else if (utcTime - lastSyncByNtp >= 3660) // 1 hour + 1 minute
+  {
+    if (!syncTimeFromRtcTicker.active())
+    {
+      syncTimeFromRtcTicker.once(120, RaiseSyncTimeFromRtcFlag);
+    }
+  }
+
+  if (syncTimeFromRtcFlag)
+  {
+    syncTimeFromRtcFlag = false;
+
     uint32_t rtc = get_time_from_rtc();
 
     if (rtc > _configTime.lastsync)
-    {
+    {      
       syncByRtcFlag = true;
-
       lastSyncByRtc = rtc;
       _configTime.lastsync = rtc;
       save_config_time();
@@ -396,37 +470,7 @@ void TimeSetup()
     else
     {
       // timestamp error
-    }
-  }
-}
-
-void TimeLoop()
-{
-  if (_configTime.enablertc && (!internetAccess || lastSyncByNtp == 0 || WiFi.status() != WL_CONNECTED || !_configTime.enablentp))
-  {
-    static uint32_t lastSyncByRtc_old = 0;
-
-    if (millis() - lastSyncByRtc_old > _configTime.syncinterval * 1000)
-    {
-      lastSyncByRtc_old = millis();
-
-      uint32_t rtc = get_time_from_rtc();
-      if (rtc > _configTime.lastsync)
-      {
-        syncByRtcFlag = true;
-
-        lastSyncByRtc = rtc;
-        _configTime.lastsync = rtc;
-        save_config_time();
-
-        timeval tv = {rtc, 0};
-        timezone tz = {0, 0};
-        settimeofday(&tv, &tz);
-      }
-      else
-      {
-        // timestamp error
-      }
+      syncTimeFromRtcTicker.once(60, RaiseSyncTimeFromRtcFlag);
     }
   }
 
@@ -455,12 +499,14 @@ void TimeLoop()
   minLocal = dt.Minute();
   secLocal = dt.Second();
 
-  uint32_t utcTime = localTime - TimezoneSeconds();
+  utcTime = localTime - TimezoneSeconds();
 
   if (syncByNtpFlag)
   {
     syncByNtpFlag = false;
     lastSyncByNtp = utcTime;
+
+    syncTimeFromRtcTicker.detach();
   }
 
   // localtime / gmtime every second change

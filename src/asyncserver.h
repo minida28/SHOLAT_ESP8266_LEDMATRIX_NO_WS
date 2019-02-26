@@ -87,10 +87,6 @@ extern bool configFileLocationUpdated;
 extern bool clientVisitConfigMqttPage;
 
 extern AsyncWebServer server;
-extern AsyncWebSocket ws;
-extern AsyncEventSource events;
-
-extern uint32_t clientID;
 
 extern FSInfo fs_info;
 

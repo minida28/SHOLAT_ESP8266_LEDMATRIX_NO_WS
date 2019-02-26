@@ -85,6 +85,14 @@ const char *const wifimode_P[] PROGMEM =
         AP_Str,
         STA_AP_Str};
 
+
+const char pgm_CONFIG_FILE[] PROGMEM = "/config.json";
+const char pgm_USER_CONFIG_FILE[] PROGMEM = "/userconfig.json";
+const char pgm_GENERIC_CONFIG_FILE[] PROGMEM = "/genericconfig.json";
+const char pgm_SECRET_FILE[] PROGMEM = "/secret.json";
+const char pgm_RUNNING_TEXT_FILE[] PROGMEM = "/runningtext.txt";
+const char pgm_RUNNING_TEXT_FILE_2[] PROGMEM = "/runningtext_2.txt";
+
 const char pgm_provincedb_file[] PROGMEM = "/provinces.csv";
 const char pgm_regencydb_file[] PROGMEM = "/regencies.csv";
 const char pgm_districtdb_file[] PROGMEM = "/districts.csv";

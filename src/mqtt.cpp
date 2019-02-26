@@ -15,16 +15,16 @@
     DEBUGPORT.printf_P(pfmt, ##__VA_ARGS__); \
   }
 
-// #define RELEASE
+#define RELEASE
 
 #ifndef RELEASE
-#define DEBUGMQTT(fmt, ...)                  \
+#define DEBUGLOG(fmt, ...)                   \
   {                                          \
     static const char pfmt[] PROGMEM = fmt;  \
     DEBUGPORT.printf_P(pfmt, ##__VA_ARGS__); \
   }
 #else
-#define DEBUGMQTT(...)
+#define DEBUGLOG(...)
 #endif
 
 // const uint16_t maxTopicLen = 48;
@@ -131,7 +131,7 @@ strConfigMqtt configMqtt;
 
 bool load_config_mqtt()
 {
-  DEBUGMQTT("%s\r\n", __PRETTY_FUNCTION__);
+  DEBUGLOG("%s\r\n", __PRETTY_FUNCTION__);
 
   const char *filename = pgm_configfilemqtt;
 
@@ -208,20 +208,20 @@ bool load_config_mqtt()
     strncat(buflwttopic, lwttopicprefix, sizeof(buflwttopic) / sizeof(buflwttopic[0]));
   }
 
-  DEBUGMQTT("\r\nConfig MQTT loaded successfully.\r\n");
-  DEBUGMQTT("enabled: %d\r\n", configMqtt.enabled);
-  DEBUGMQTT("server: %s\r\n", configMqtt.server);
-  DEBUGMQTT("port: %d\r\n", configMqtt.port);
-  DEBUGMQTT("user: %s\r\n", configMqtt.user);
-  DEBUGMQTT("pass: %s\r\n", configMqtt.pass);
-  DEBUGMQTT("clientid: %s\r\n", configMqtt.clientid);
-  DEBUGMQTT("keepalive: %d\r\n", configMqtt.keepalive);
-  DEBUGMQTT("cleansession: %d\r\n", configMqtt.cleansession);
-  DEBUGMQTT("lwttopicprefix: %s\r\n", configMqtt.lwttopicprefix);
-  DEBUGMQTT("full lwt topic: %s\r\n", buflwttopic);
-  DEBUGMQTT("lwtqos: %d\r\n", configMqtt.lwtqos);
-  DEBUGMQTT("lwtretain: %d\r\n", configMqtt.lwtretain);
-  DEBUGMQTT("lwtpayload: %s\r\n", configMqtt.lwtpayload);
+  DEBUGLOG("\r\nConfig MQTT loaded successfully.\r\n");
+  DEBUGLOG("enabled: %d\r\n", configMqtt.enabled);
+  DEBUGLOG("server: %s\r\n", configMqtt.server);
+  DEBUGLOG("port: %d\r\n", configMqtt.port);
+  DEBUGLOG("user: %s\r\n", configMqtt.user);
+  DEBUGLOG("pass: %s\r\n", configMqtt.pass);
+  DEBUGLOG("clientid: %s\r\n", configMqtt.clientid);
+  DEBUGLOG("keepalive: %d\r\n", configMqtt.keepalive);
+  DEBUGLOG("cleansession: %d\r\n", configMqtt.cleansession);
+  DEBUGLOG("lwttopicprefix: %s\r\n", configMqtt.lwttopicprefix);
+  DEBUGLOG("full lwt topic: %s\r\n", buflwttopic);
+  DEBUGLOG("lwtqos: %d\r\n", configMqtt.lwtqos);
+  DEBUGLOG("lwtretain: %d\r\n", configMqtt.lwtretain);
+  DEBUGLOG("lwtpayload: %s\r\n", configMqtt.lwtpayload);
 
   mqttClient.setServer(configMqtt.server, configMqtt.port);
 
@@ -248,7 +248,7 @@ bool load_config_mqtt()
 
 void onWifiGotIPForMqtt(const WiFiEventStationModeGotIP &event)
 {
-  // DEBUGMQTT("%s\n", __PRETTY_FUNCTION__);
+  // DEBUGLOG("%s\n", __PRETTY_FUNCTION__);
   gotWifiForMqttFlag = true;
 
   // connectToMqtt();
@@ -256,7 +256,7 @@ void onWifiGotIPForMqtt(const WiFiEventStationModeGotIP &event)
 
 void onWifiDisconnectForMqtt(const WiFiEventStationModeDisconnected &event)
 {
-  // DEBUGMQTT("Disconnected from Wi-Fi. Detaching mqttReconnectTimer.\r\n");
+  // DEBUGLOG("Disconnected from Wi-Fi. Detaching mqttReconnectTimer.\r\n");
   mqttReconnectTimer.detach(); // ensure we don't reconnect to MQTT while reconnecting to Wi-Fi
 
   //wifiReconnectTimer.once(2, connectToWifi);
@@ -266,24 +266,31 @@ void onWifiDisconnectForMqtt(const WiFiEventStationModeDisconnected &event)
 
 void connectToMqtt()
 {
-  // DEBUGMQTT("%s\n", __PRETTY_FUNCTION__);
+  // DEBUGLOG("%s\n", __PRETTY_FUNCTION__);
+
+  PRINT("\r\nLoading MQTT config...\r\n");
+  if (!load_config_mqtt())
+  {
+    PRINT("Failed loading Mqtt config.\r\n");
+    return;
+  }
 
   PRINT("\r\nConnecting to MQTT...\r\n");
 
-  DEBUGMQTT("\r\nConfirm MQTT settings before connecting.\r\n");
-  DEBUGMQTT("enabled: %d\r\n", configMqtt.enabled);
-  DEBUGMQTT("server: %s\r\n", configMqtt.server);
-  DEBUGMQTT("port: %d\r\n", configMqtt.port);
-  DEBUGMQTT("user: %s\r\n", configMqtt.user);
-  DEBUGMQTT("pass: %s\r\n", configMqtt.pass);
-  DEBUGMQTT("clientid: %s\r\n", configMqtt.clientid);
-  DEBUGMQTT("keepalive: %d\r\n", configMqtt.keepalive);
-  DEBUGMQTT("cleansession: %d\r\n", configMqtt.cleansession);
-  DEBUGMQTT("lwttopicprefix: %s\r\n", configMqtt.lwttopicprefix);
-  // DEBUGMQTT("full lwt topic: %s\r\n", buflwttopic);
-  DEBUGMQTT("lwtqos: %d\r\n", configMqtt.lwtqos);
-  DEBUGMQTT("lwtretain: %d\r\n", configMqtt.lwtretain);
-  DEBUGMQTT("lwtpayload: %s\r\n", configMqtt.lwtpayload);
+  DEBUGLOG("\r\nConfirm MQTT settings before connecting.\r\n");
+  DEBUGLOG("enabled: %d\r\n", configMqtt.enabled);
+  DEBUGLOG("server: %s\r\n", configMqtt.server);
+  DEBUGLOG("port: %d\r\n", configMqtt.port);
+  DEBUGLOG("user: %s\r\n", configMqtt.user);
+  DEBUGLOG("pass: %s\r\n", configMqtt.pass);
+  DEBUGLOG("clientid: %s\r\n", configMqtt.clientid);
+  DEBUGLOG("keepalive: %d\r\n", configMqtt.keepalive);
+  DEBUGLOG("cleansession: %d\r\n", configMqtt.cleansession);
+  DEBUGLOG("lwttopicprefix: %s\r\n", configMqtt.lwttopicprefix);
+  // DEBUGLOG("full lwt topic: %s\r\n", buflwttopic);
+  DEBUGLOG("lwtqos: %d\r\n", configMqtt.lwtqos);
+  DEBUGLOG("lwtretain: %d\r\n", configMqtt.lwtretain);
+  DEBUGLOG("lwtpayload: %s\r\n", configMqtt.lwtpayload);
 
   mqttClient.connect();
 }
@@ -315,18 +322,18 @@ void onMqttUnsubscribe(uint16_t packetId)
 //   mqttOnMessageFlag = true;
 //   size_t lenTopic = strlen(topic) + 1;
 
-//   DEBUGMQTT("Payload received\r\n  topic: %s\r\n  qos: %d\r\n  dup: %d\r\n  retain: %d\r\n  len: %d\r\n  index: %d\r\n  total: %d\r\n  topic len: %d\r\n  payload len: %d\r\n\r\n",
+//   DEBUGLOG("Payload received\r\n  topic: %s\r\n  qos: %d\r\n  dup: %d\r\n  retain: %d\r\n  len: %d\r\n  index: %d\r\n  total: %d\r\n  topic len: %d\r\n  payload len: %d\r\n\r\n",
 //             topic, properties.qos, properties.dup, properties.retain, len, index, total, lenTopic, len);
 
 //   if (lenTopic >= 32)
 //   {
-//     DEBUGMQTT("Topic length is too large!");
+//     DEBUGLOG("Topic length is too large!");
 //     return;
 //   }
 
 //   if (len >= 256)
 //   {
-//     DEBUGMQTT("Payload length is too large!");
+//     DEBUGLOG("Payload length is too large!");
 //     return;
 //   }
 
@@ -349,21 +356,21 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
 
   size_t lenTopic = strlen(topic) + 1;
 
-  DEBUGMQTT("Payload received\r\n  topic: %s\r\n  qos: %d\r\n  dup: %d\r\n  retain: %d\r\n  len: %d\r\n  index: %d\r\n  total: %d\r\n  topic len: %d\r\n  payload len: %d\r\n",
-            topic, properties.qos, properties.dup, properties.retain, len, index, total, lenTopic, len);
+  DEBUGLOG("Payload received\r\n  topic: %s\r\n  qos: %d\r\n  dup: %d\r\n  retain: %d\r\n  len: %d\r\n  index: %d\r\n  total: %d\r\n  topic len: %d\r\n  payload len: %d\r\n",
+           topic, properties.qos, properties.dup, properties.retain, len, index, total, lenTopic, len);
 
   const uint16_t maxTopicLen = 48;
   const uint16_t maxPayloadLen = 256;
 
   if (lenTopic >= maxTopicLen)
   {
-    DEBUGMQTT("Topic length is too large!");
+    DEBUGLOG("Topic length is too large!");
     return;
   }
 
   if (len >= maxPayloadLen)
   {
-    DEBUGMQTT("Payload length is too large!");
+    DEBUGLOG("Payload length is too large!");
     return;
   }
 
@@ -382,16 +389,8 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
   }
   bufPayload[len] = '\0';
 
-  DEBUGMQTT("MQTT received [%s]\r\n", bufTopic);
-  DEBUGMQTT("Payload: %s\r\n\r\n", bufPayload);
-
-  if (wsConnected && clientVisitConfigMqttPage)
-  {
-    // size_t len = root.measureLength();
-    // char buf[len + 1];
-    // root.printTo(buf, sizeof(buf) / sizeof(buf[0]));
-    ws.text(clientID, bufPayload);
-  }
+  DEBUGLOG("MQTT received [%s]\r\n", bufTopic);
+  DEBUGLOG("Payload: %s\r\n\r\n", bufPayload);
 
   mqttOnMessageFlag = false;
 
@@ -411,7 +410,7 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
 
     if (!root.success())
     {
-      DEBUGMQTT("Parsing payload json not succesful.\r\n");
+      DEBUGLOG("Parsing payload json not succesful.\r\n");
       return;
     }
 
@@ -421,15 +420,15 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
     if (root["voltage"].success())
     {
       voltage = root["voltage"];
-      DEBUGMQTT("Voltage: %s\r\n", voltage);
+      DEBUGLOG("Voltage: %s\r\n", voltage);
 
       strlcpy(bufVoltage, voltage, sizeof(bufVoltage) / sizeof(bufVoltage[0]));
-      dtostrf(atof(bufVoltage), 0, 0, bufVoltage);      
+      dtostrf(atof(bufVoltage), 0, 0, bufVoltage);
     }
     if (root["watt"].success())
     {
       watt = root["watt"];
-      DEBUGMQTT("Watt: %s\r\n", watt);
+      DEBUGLOG("Watt: %s\r\n", watt);
 
       strlcpy(bufWatt, watt, sizeof(bufWatt) / sizeof(bufWatt[0]));
       dtostrf(atof(bufWatt), 0, 0, bufWatt);
@@ -437,7 +436,7 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
     if (root["ampere"].success())
     {
       ampere = root["ampere"];
-      DEBUGMQTT("Ampere: %s\r\n\r\n", ampere);
+      DEBUGLOG("Ampere: %s\r\n\r\n", ampere);
 
       strlcpy(bufAmpere, ampere, sizeof(bufAmpere) / sizeof(bufAmpere[0]));
       dtostrf(atof(bufAmpere), 0, 2, bufAmpere);
@@ -461,7 +460,7 @@ void onMqttPublish(uint16_t packetId)
 
 bool mqtt_setup()
 {
-  DEBUGMQTT("\r\n%s\r\n", __PRETTY_FUNCTION__);
+  DEBUGLOG("\r\n%s\r\n", __PRETTY_FUNCTION__);
 
   // register wifi handler for mqtt
   wifiConnectHandlerForMqtt = WiFi.onStationModeGotIP(onWifiGotIPForMqtt);
@@ -607,10 +606,10 @@ void mqtt_loop()
     gotWifiForMqttFlag = false;
     PRINT("gotWifiForMqttFlag\r\n");
 
-    if (!load_config_mqtt())
-    {
-      return;
-    }
+    // if (!load_config_mqtt())
+    // {
+    //   return;
+    // }
 
     if (configMqtt.enabled)
     {
@@ -705,8 +704,8 @@ void mqtt_loop()
   if (mqttUnsubscribeFlag)
   {
     mqttUnsubscribeFlag = false;
-    // DEBUGMQTT("Unsubscribe acknowledged.\n  packetId: %d\r\n", packetId);
-    DEBUGMQTT("Unsubscribe acknowledged.\r\n");
+    // DEBUGLOG("Unsubscribe acknowledged.\n  packetId: %d\r\n", packetId);
+    DEBUGLOG("Unsubscribe acknowledged.\r\n");
   }
 
   // if (mqttOnMessageFlag)
@@ -721,8 +720,8 @@ void mqtt_loop()
   //   {
   //     lastTimePayloadReceived = 0;
 
-  //     DEBUGMQTT("MQTT received [%s]\r\n", bufTopic);
-  //     DEBUGMQTT("Payload: %s\r\n", bufPayload);
+  //     DEBUGLOG("MQTT received [%s]\r\n", bufTopic);
+  //     DEBUGLOG("Payload: %s\r\n", bufPayload);
 
   //     StaticJsonBuffer<256> jsonBuffer;
   //     JsonObject &root = jsonBuffer.parseObject(bufPayload);

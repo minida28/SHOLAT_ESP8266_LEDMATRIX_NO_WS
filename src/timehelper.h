@@ -46,6 +46,7 @@ extern bool timeSetFlag;
 extern bool internetAccess;
 
 extern uint32_t now;
+extern uint32_t utcTime;
 extern uint32_t localTime;
 extern uint32_t lastSync; ///< Stored time of last successful sync
 extern uint32_t lastSyncByNtp; ///< Stored time of last successful sync

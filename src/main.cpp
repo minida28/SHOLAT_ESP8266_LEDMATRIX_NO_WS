@@ -379,7 +379,7 @@ void loop()
   {
     timeSetFlag = false;
 
-    lastSync = now;
+    lastSync = utcTime;
     process_sholat();
     process_sholat_2nd_stage();
   }

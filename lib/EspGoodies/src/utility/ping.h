@@ -7,7 +7,7 @@
 /////////////////////
 // user configurable
 
-#define PING_MAX_FAILED_MN  5    // minutes, default 5
+#define PING_MAX_FAILED_MN  0.25    // minutes, default 5
 #define PING_DELAY          5000 // milliseconds
 extern void pingFault (void);    // to de defined by user
 
