@@ -2,8 +2,8 @@
   "dst": false,
   "enablertc": true,
   "syncinterval": 180,
-  "lastsync": 1550979006,
-  "enablentp": true,
+  "lastsync": 1564069766,
+  "enablentp": false,
   "ntpserver_0": "id.pool.ntp.org",
   "ntpserver_1": "asia.pool.ntp.org",
   "ntpserver_2": "192.168.10.1"

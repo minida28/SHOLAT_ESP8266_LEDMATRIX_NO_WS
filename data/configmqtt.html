@@ -127,6 +127,13 @@
                 <div class="content">
                   
                   <p class="title is-5 has-text-weight-bold">MQTT</p>
+                  
+                  <div class="field">
+                    <label class="label">Mqtt status</label>
+                    <div class="control">
+                      <input class="input" id="status" type="text">
+                    </div>
+                  </div>
 
                   <div class="field">
                     <label class="label">Enable MQTT</label>
@@ -418,6 +425,7 @@
     var countsub1 = 0;
 
     window.onload = function () {
+      getConfigValues("status/mqtt");
       getConfigValues("config/mqtt");
       getConfigValues("configmqttpubsub.json");
       // startSocket();
@@ -490,7 +498,10 @@
         else if (url === "configmqttpubsub.json") {
           req.addEventListener("load", reqListenerMqttPubSub);
         }
-        req.timeout = 2000;
+        else if (url === "status/mqtt") {
+          req.addEventListener("load", reqListenerMqttStatus);
+        }
+        req.timeout = 1000;
         req.ontimeout = function (e) {
           console.log("timeout");
           req.abort();
@@ -518,6 +529,21 @@
         document.getElementById('lwtpayload').value = json.lwtpayload;
 
         // something();
+      }
+      else {
+        console.log("Data received: ", this.responseText);
+      }
+    }
+    function reqListenerMqttStatus() {
+      if (isJSON(this.responseText)) {
+        let json = JSON.parse(this.responseText);
+        console.log("Data received: ", json);
+
+        if (json.connected == true) {
+          document.getElementById('status').value = "CONNECTED";
+        } else {
+        document.getElementById('status').value = "DISCONNECTED";
+        }
       }
       else {
         console.log("Data received: ", this.responseText);

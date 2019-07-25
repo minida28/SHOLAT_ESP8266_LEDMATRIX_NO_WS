@@ -206,7 +206,8 @@
           <tr>
             <td colspan="2" style="width:50%" align="right">
               <strong style="color:white;background-color:#c35">
-                <a href="https://time.is/" id="time_is_link" rel="nofollow" style="color:white;background-color:#c35">Time.is</a>
+                <a href="https://time.is/" id="time_is_link" rel="nofollow"
+                  style="color:white;background-color:#c35">Time.is</a>
               </strong>
             </td>
           </tr>
@@ -214,9 +215,9 @@
             <td colspan="2">
               UTC time:
               <span id="timeisUTC_time">waiting...</span>
-              <br/> UTC date:
+              <br /> UTC date:
               <span id="timeisUTC_date">waiting...</span>
-              <br/>
+              <br />
             </td>
           </tr>
           <tr>
@@ -230,20 +231,22 @@
             <tr>
               <td align="right">Sinkronkan ke Time.is</td>
               <td>
-                <input id="sync_to_timeis" name="syncChoice" type="radio" value="timeis" onchange="something(this.value)" required>
+                <input id="sync_to_timeis" name="syncChoice" type="radio" value="timeis"
+                  onchange="something(this.value)" required>
               </td>
             </tr>
             <tr>
               <td align="right">Sinkronkan dengan jam hape/laptop</td>
               <td>
-                <input id="sync_to_hapelaptop" name="syncChoice" type="radio" value="hapelaptop" onchange="something(this.value)" checked
-                  required>
+                <input id="sync_to_hapelaptop" name="syncChoice" type="radio" value="hapelaptop"
+                  onchange="something(this.value)" checked required>
               </td>
             </tr>
             <tr>
               <td align="right">Set manually</td>
               <td>
-                <input id="sync_manual" name="syncChoice" type="radio" value="manual" onchange="something(this.value)" required>
+                <input id="sync_manual" name="syncChoice" type="radio" value="manual" onchange="something(this.value)"
+                  required>
               </td>
             </tr>
           </table>
@@ -252,43 +255,43 @@
             <tr id="dayRow" name="manualDateTime" hidden>
               <td style="width:60%" align="right">Tanggal:</td>
               <td>
-                <input id="day" name="day" type="number" size="4" maxlength="2" min="1" max="31" onchange="calculateManualTimeStamp(this.value)"
-                  required>
+                <input id="day" name="day" type="number" size="4" maxlength="2" min="1" max="31"
+                  onchange="calculateManualTimeStamp(this.value)" required>
               </td>
             </tr>
             <tr id="monthRow" name="manualDateTime" hidden>
               <td align="right">Bulan:</td>
               <td>
-                <input id="month" name="month" type="number" size="4" maxlength="2" min="1" max="12" onchange="calculateManualTimeStamp(this.value)"
-                  required>
+                <input id="month" name="month" type="number" size="4" maxlength="2" min="1" max="12"
+                  onchange="calculateManualTimeStamp(this.value)" required>
               </td>
             </tr>
             <tr id="yearRow" name="manualDateTime" hidden>
               <td align="right">Tahun:</td>
               <td>
-                <input id="year" name="year" type="number" size="4" maxlength="4" min="2017" max="2500" onchange="calculateManualTimeStamp(this.value)"
-                  required>
+                <input id="year" name="year" type="number" size="4" maxlength="4" min="2017" max="2500"
+                  onchange="calculateManualTimeStamp(this.value)" required>
               </td>
             </tr>
             <tr id="hourRow" name="manualDateTime" hidden>
               <td align="right">Jam:</td>
               <td>
-                <input id="hour" name="hour" type="number" size="4" maxlength="2" min="0" max="23" onchange="calculateManualTimeStamp(this.value)"
-                  required>
+                <input id="hour" name="hour" type="number" size="4" maxlength="2" min="0" max="23"
+                  onchange="calculateManualTimeStamp(this.value)" required>
               </td>
             </tr>
             <tr id="minuteRow" name="manualDateTime" hidden>
               <td align="right">Menit:</td>
               <td>
-                <input id="minute" name="minute" type="number" size="4" maxlength="2" min="0" max="59" onchange="calculateManualTimeStamp(this.value)"
-                  required>
+                <input id="minute" name="minute" type="number" size="4" maxlength="2" min="0" max="59"
+                  onchange="calculateManualTimeStamp(this.value)" required>
               </td>
             </tr>
             <tr id="secondRow" name="manualDateTime" hidden>
               <td align="right">Detik:</td>
               <td>
-                <input id="second" name="second" type="number" size="4" maxlength="2" min="0" max="59" onchange="calculateManualTimeStamp(this.value)"
-                  required>
+                <input id="second" name="second" type="number" size="4" maxlength="2" min="0" max="59"
+                  onchange="calculateManualTimeStamp(this.value)" required>
               </td>
             </tr>
             <tr>
@@ -339,7 +342,8 @@
               <input type="button" value="Connect" onclick="wsOpen()" style="width:100%" class="btn btn--m btn--blue" />
             </td>
             <td>
-              <input type="button" value="Disconnect" onclick="disconnect()" style="width:100%" class="btn btn--m btn--blue" />
+              <input type="button" value="Disconnect" onclick="disconnect()" style="width:100%"
+                class="btn btn--m btn--blue" />
             </td>
           </tr>
         </table>
@@ -363,10 +367,10 @@
 
   <!--<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.20.1/moment.min.js"></script>-->
   <!--<script src="moment-timezone-data.js"></script>-->
-  
-  
+
+
   <!--<script src="moment-2.20.1.min.js"></script>-->
-  
+
   <script src="//widget.time.is/id.js"></script>
   <script>
     time_is_widget.init({
@@ -387,18 +391,38 @@
 
   <script language="javascript" type="text/javascript">
 
-    window.onload = function ()
-    {
-      sendHttpRequest("/status/datetime");
-      setInterval(function () { sendHttpRequest("/status/datetime"); }, 1000);
+    var method = "WEBSOCKET";
+
+    window.onload = function () {
+      if (method === "HTTP") {
+        sendHttpRequest("/status/datetime");
+        setInterval(function () { sendHttpRequest("/status/datetime"); }, 1000);
+        // wsOpen();
+        // startPolling();
+        // 	startEvents();
+        // doOnce();
+        //BrowserTime();
+        calculateManualTimeStamp()
+        // something();
+      }
+      else if (method === "WEBSOCKET") {
+        wsOpen();
+        setInterval(function () { wsSendUrl() }, 1000);
+        // startConnectionTimer();
+        // wsOpen();
+        // startPolling();
+        // startEvents();
+        doOnce();
+        //BrowserTime();
+        calculateManualTimeStamp()
+        something();
+      }
+
       // wsOpen();
       // startPolling();
-      // 	startEvents();
-      // doOnce();
-      //BrowserTime();
-      calculateManualTimeStamp()
-      // something();
+      // startConnectionTimer();
     }
+
 
     document.addEventListener('DOMContentLoaded', function () {
 
@@ -447,37 +471,37 @@
       // document.getElementById("ntpserver_2").value = json.ntpserver_2;
 
       // something();
-        if (json.hasOwnProperty('utc')) {
-          document.getElementById("tileDtSystem").style.display = "block";
-          document.getElementById("tileSyncBtn").style.display = "block";
+      if (json.hasOwnProperty('utc')) {
+        document.getElementById("tileDtSystem").style.display = "block";
+        document.getElementById("tileSyncBtn").style.display = "block";
 
-          var dt = new Date((json.utc) * 1000);
-          var timezone = json.tz / 10.0;
+        var dt = new Date((json.utc) * 1000);
+        var timezone = json.tz / 10.0;
 
-          var options =
-          {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-          };
+        var options =
+        {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        };
 
-          var year = dt.getFullYear();
-          var month = (dt.getMonth() + 1);
-          var day = dt.getDate();
-          // var hr = dt.getHours();
-          var hr = twoDigits(dt.getHours());
-          var min = twoDigits(dt.getMinutes());
-          var sec = twoDigits(dt.getSeconds());
-          var millis = twoDigits(dt.getMilliseconds());
+        var year = dt.getFullYear();
+        var month = (dt.getMonth() + 1);
+        var day = dt.getDate();
+        // var hr = dt.getHours();
+        var hr = twoDigits(dt.getHours());
+        var min = twoDigits(dt.getMinutes());
+        var sec = twoDigits(dt.getSeconds());
+        var millis = twoDigits(dt.getMilliseconds());
 
-          document.getElementById("system_timezone").textContent = timezone;
-          // document.getElementById("timeSystem").textContent = dt.toLocaleTimeString('it-IT');
-          document.getElementById('timeSystem').textContent = hr + ":" + min + ":" + sec;
-          document.getElementById("dateSystem").textContent = dt.toLocaleDateString('id-ID', options);
-          document.getElementById("timeSystem2").textContent = dt.toLocaleTimeString('it-IT');
-          document.getElementById("dateSystem2").textContent = dt.toLocaleDateString('id-ID', options);
-        }
+        document.getElementById("system_timezone").textContent = timezone;
+        // document.getElementById("timeSystem").textContent = dt.toLocaleTimeString('it-IT');
+        document.getElementById('timeSystem').textContent = hr + ":" + min + ":" + sec;
+        document.getElementById("dateSystem").textContent = dt.toLocaleDateString('id-ID', options);
+        document.getElementById("timeSystem2").textContent = dt.toLocaleTimeString('it-IT');
+        document.getElementById("dateSystem2").textContent = dt.toLocaleDateString('id-ID', options);
+      }
     }
 
     function load(e, t, n) {
@@ -661,8 +685,7 @@
     var secondPC_old = 0;
 
 
-    function BrowserTime()
-    {
+    function BrowserTime() {
       timeNow = new Date();
 
       var timeUTC_millisecond = timeNow.getTime();
@@ -722,64 +745,73 @@
       //   }
       // }
       // if (timeUTC_millisecond % 1000 <=3)
-      
+
       // return timeUTC_second;
-      
-      if (secondPC_old != sec)
-      {
+
+      if (secondPC_old != sec) {
         secondPC_old = sec;
-        
+
         // sendHttpRequest("/status/datetime");
-        
-        if (sync)
-        {
+
+        if (sync) {
           // var timeStampToSend;
           // if (stateButtonSyncManual) {
-            // timeStampToSend = "m " + document.getElementById('manualtimestamp').value;
-            // console.log(timeStampToSend);
-            // ws.send(timeStampToSend);
-            // return timeStampToSend;
-            sendTimestamp();
+          // timeStampToSend = "m " + document.getElementById('manualtimestamp').value;
+          // console.log(timeStampToSend);
+          // ws.send(timeStampToSend);
+          // return timeStampToSend;
+          sendTimestamp();
         }
       }
     }
-      
+
     function sendTimestamp() {
-      var xhr = new XMLHttpRequest();
-      xhr.open("POST", '/setrtctime', true);
-
-      //Send the proper header information along with the request
-      xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-      // xhr.setRequestHeader("Content-Type", "text/plain");
-      // xhr.setRequestHeader("Content-Type", "multipart/form-data");
-
-      xhr.onreadystatechange = function ()
-      {//Call a function when the state changes.
-        if (this.readyState == XMLHttpRequest.DONE && this.status == 200)
-        {
-          // Request finished. Do processing here.
+      if (method === "WEBSOCKET") {
+        var timeStampToSend;
+        if (stateButtonSyncManual) {
+          timeStampToSend = "m " + document.getElementById('manualtimestamp').value;
+          ws.send(timeStampToSend);
+          console.log(timeStampToSend);
         }
-      }
+        else if (stateButtonSyncToInternet) {
+          // timeStampToSend = "t " + timeUTC_second;
+          timeStampToSend = "t " + (Number(timeUTC_second) + 1);
+          ws.send(timeStampToSend);
+          console.log(timeStampToSend);
+        }
+      } else {
+        var xhr = new XMLHttpRequest();
+        xhr.open("POST", '/setrtctime', true);
 
-      var timeStampToSend;
-      if (stateButtonSyncManual)
-      {
-        timeStampToSend = "m " + document.getElementById('manualtimestamp').value;
-        console.log(timeStampToSend);
-        // sendTimestamp();
-      }
-      else if (stateButtonSyncToInternet)
-      {
-        timeStampToSend = "t " + (Number(timeUTC_second) + 1);
-        console.log(timeStampToSend);
-        // sendTimestamp();
-      }
-      var config_str = "timestamp=" + timeStampToSend;
-      console.log(config_str);
-      
-      // BrowserTime
+        //Send the proper header information along with the request
+        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+        // xhr.setRequestHeader("Content-Type", "text/plain");
+        // xhr.setRequestHeader("Content-Type", "multipart/form-data");
 
-      xhr.send(config_str);
+        xhr.onreadystatechange = function () {//Call a function when the state changes.
+          if (this.readyState == XMLHttpRequest.DONE && this.status == 200) {
+            // Request finished. Do processing here.
+          }
+        }
+
+        var timeStampToSend;
+        if (stateButtonSyncManual) {
+          timeStampToSend = "m " + document.getElementById('manualtimestamp').value;
+          console.log(timeStampToSend);
+          // sendTimestamp();
+        }
+        else if (stateButtonSyncToInternet) {
+          timeStampToSend = "t " + (Number(timeUTC_second) + 1);
+          console.log(timeStampToSend);
+          // sendTimestamp();
+        }
+        var config_str = "timestamp=" + timeStampToSend;
+        console.log(config_str);
+
+        // BrowserTime
+
+        xhr.send(config_str);
+      }
     }
 
     function TimeIs() {
@@ -1119,6 +1151,16 @@
         console.log("evt.data = ", evt.data);
       }
     }
+
+    function wsSendUrl() {
+      var obj = new Object();
+      obj.url = window.location.pathname;
+      var myJSON = JSON.stringify(obj);
+      console.log(myJSON);
+      // ws.send(myJSON);
+      ws.send(obj.url);
+    }
+
     function wsOpen() {
       if (ws === undefined || ws.readyState != 0) {
         if (retries) {
@@ -1133,14 +1175,8 @@
         ws.binaryType = 'arraybuffer';
         ws.onopen = function (evt) {
           console.log("WebSocket is open. Connected to " + evt.target.url, evt);
-          retries = 0;
-          // setMsg("green", "Connected");
-          var obj = new Object();
-          obj.url = window.location.pathname;
-          var myJSON = JSON.stringify(obj);
-          console.log(myJSON);
-          // ws.send(myJSON);
-          ws.send(obj.url);
+
+          wsSendUrl();
         };
         ws.onclose = function (evt) {
           console.log("WebSocket close. Code: " + evt.code + ", Reason: " + evt.reason);

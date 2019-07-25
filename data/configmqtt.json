@@ -1,6 +1,6 @@
 {
   "enabled": true,
-  "server": "192.168.10.3",
+  "server": "192.168.50.1",
   "port": 1883,
   "user": "test",
   "pass": "test",

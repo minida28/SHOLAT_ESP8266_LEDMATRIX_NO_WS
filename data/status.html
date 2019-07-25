@@ -396,28 +396,64 @@
   <script language="javascript" type="text/javascript">
     var ws = null;
 
+    var method = "WEBSOCKET";
+  
     window.onload = function () {
-      
-      getConfigValues("/status/heap");
-      getConfigValues("/status/datetime");
-      getConfigValues("/systeminfo.json");
-      setInterval(function ()
-      {
+      if (method === "HTTP") {
         getConfigValues("/status/heap");
         getConfigValues("/status/datetime");
-      }, 4000);
-      // startSocket();
-      //startEvents();
+        getConfigValues("/systeminfo.json");
+        setInterval(function ()
+        {
+          getConfigValues("/status/heap");
+          getConfigValues("/status/datetime");
+        }, 4000);
+        // startSocket();
+        //startEvents();
+      }
+      else if (method === "WEBSOCKET") {
+        // getConfigValues("/status/heap");
+        // getConfigValues("/status/datetime");
+        getConfigValues("/systeminfo.json");
+        wsOpen();
+        setInterval(function(){
+          wsSendUrl('freeheap');
+          wsSendUrl('/status/datetime');
+        }, 4000);
+        // startConnectionTimer();
+        // wsOpen();
+      	// startPolling();
+        // startEvents();
+        // doOnce();
+        //BrowserTime();
+        // calculateManualTimeStamp()
+        // something();
+      } 
+
+      // wsOpen();
+      // startPolling();
+      // startConnectionTimer();
     }
-    function startSocket() {
+    
+    function wsSendUrl(path) {
+      var obj = new Object();
+      if (path == undefined) {
+        obj.url = window.location.pathname;
+      } else {
+        obj.url = path;
+      }
+      var myJSON = JSON.stringify(obj);
+      console.log(myJSON);
+      // ws.send(myJSON);
+      ws.send(obj.url);
+    }
+    
+    function wsOpen() {
       ws = new WebSocket('ws://' + document.location.host + '/ws', ['arduino']);
       ws.binaryType = "arraybuffer";
       ws.onopen = function (evt) {
-        var obj = new Object();
-        obj.url = window.location.pathname;
-        var myJSON = JSON.stringify(obj);
-        // ws.send(myJSON);
-        ws.send(obj.url);
+        wsSendUrl('freeheap');
+        wsSendUrl('/status/datetime');
       };
       ws.onclose = function (evt) {
         console.log("WebSocket close. Code: " + evt.code + ", Reason: " + evt.reason);
@@ -482,6 +518,8 @@
               document.getElementById("time").textContent = json.time;
               document.getElementById("uptime").textContent = json.uptime;
               document.getElementById("lastsync").textContent = json.lastsync;
+              document.getElementById("lastsyncbyntp").textContent = json.lastsyncbyntp;
+              document.getElementById("lastsyncbyrtc").textContent = json.lastsyncbyrtc;
               document.getElementById("nextsync").textContent = json.nextsync;
               document.getElementById("lastboot").textContent = json.lastboot;
               document.getElementById("ping_seq_num_recv").textContent = json.ping_seq_num_recv;

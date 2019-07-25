@@ -111,7 +111,6 @@
       };
       es.onmessage = function(e) {
         addMessage("Event: " + e.data);
-        console.log("Event: " + e.data);
       };
       es.addEventListener('ota', function(e) {
         addMessage("Event[ota]: " + e.data);

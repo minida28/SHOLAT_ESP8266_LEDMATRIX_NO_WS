@@ -1,9 +1,9 @@
 {
-  "operatingmode": 1,
+  "operatingmode": 0,
   "pagemode": "Automatic",
   "pagemode0": 6,
-  "pagemode1": 12,
-  "pagemode2": 1,
+  "pagemode1": 8,
+  "pagemode2": 2,
   "scrollrow_0": false,
   "scrollrow_1": false,
   "scrollspeed": 17,

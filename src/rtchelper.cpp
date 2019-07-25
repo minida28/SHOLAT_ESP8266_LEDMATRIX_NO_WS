@@ -45,7 +45,7 @@ float GetRtcTemp()
   DEBUGLOG("%s\r\n", __PRETTY_FUNCTION__);
 
   RtcTemperature temp = Rtc.GetTemperature();
-  return temp.AsFloat();
+  return temp.AsFloatDegC();
 }
 
 char *GetRtcStatusString()

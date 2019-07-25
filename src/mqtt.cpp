@@ -133,7 +133,9 @@ bool load_config_mqtt()
 {
   DEBUGLOG("%s\r\n", __PRETTY_FUNCTION__);
 
-  const char *filename = pgm_configfilemqtt;
+  size_t fileLen = strlen_P(pgm_configfilemqtt);
+  char filename[fileLen + 1];
+  strcpy_P(filename, pgm_configfilemqtt);
 
   File file = SPIFFS.open(filename, "r");
   PRINT("Opening file %s...\r\n", file.name());
@@ -154,13 +156,12 @@ bool load_config_mqtt()
     return false;
   }
 
-  // DynamicJsonBuffer jsonBuffer(allocSize);
-  StaticJsonBuffer<allocSize> jsonBuffer;
-  JsonObject &root = jsonBuffer.parseObject(file);
+  StaticJsonDocument<allocSize> root;
+  DeserializationError error = deserializeJson(root, file);
 
   file.close();
 
-  if (!root.success())
+  if (error)
   {
     PRINT("Failed parsing config MQTT file\r\n");
     return false;
@@ -182,7 +183,7 @@ bool load_config_mqtt()
   strlcpy(configMqtt.lwttopicprefix, root[FPSTR(pgm_mqtt_lwttopicprefix)], sizeof(configMqtt.lwttopicprefix) / sizeof(configMqtt.lwttopicprefix[0]));
   configMqtt.lwtqos = root[FPSTR(pgm_mqtt_lwtqos)];
   configMqtt.lwtretain = root[FPSTR(pgm_mqtt_lwtretain)];
-  strlcpy(configMqtt.lwtpayload, root[FPSTR(pgm_mqtt_lwtpayload)], sizeof(configMqtt.lwtpayload) / sizeof(configMqtt.lwttopicprefix[0]));
+  strlcpy(configMqtt.lwtpayload, root[FPSTR(pgm_mqtt_lwtpayload)], sizeof(configMqtt.lwtpayload) / sizeof(configMqtt.lwtpayload[0]));
 
   // construct full lwt topic
   char lwtbasetopic[sizeof(_config.hostname)];
@@ -207,6 +208,9 @@ bool load_config_mqtt()
     strncat(buflwttopic, bufSlash, sizeof(buflwttopic) / sizeof(buflwttopic[0]));
     strncat(buflwttopic, lwttopicprefix, sizeof(buflwttopic) / sizeof(buflwttopic[0]));
   }
+
+  // store full topic
+  strlcpy(configMqtt.lwtfulltopic, buflwttopic, sizeof(configMqtt.lwtfulltopic));
 
   DEBUGLOG("\r\nConfig MQTT loaded successfully.\r\n");
   DEBUGLOG("enabled: %d\r\n", configMqtt.enabled);
@@ -238,7 +242,7 @@ bool load_config_mqtt()
   mqttClient.setClientId(configMqtt.clientid);
   mqttClient.setKeepAlive(configMqtt.keepalive);
   mqttClient.setCleanSession(configMqtt.cleansession);
-  mqttClient.setWill(buflwttopic,
+  mqttClient.setWill(configMqtt.lwtfulltopic,
                      configMqtt.lwtqos,
                      configMqtt.lwtretain,
                      configMqtt.lwtpayload);
@@ -275,8 +279,6 @@ void connectToMqtt()
     return;
   }
 
-  PRINT("\r\nConnecting to MQTT...\r\n");
-
   DEBUGLOG("\r\nConfirm MQTT settings before connecting.\r\n");
   DEBUGLOG("enabled: %d\r\n", configMqtt.enabled);
   DEBUGLOG("server: %s\r\n", configMqtt.server);
@@ -291,6 +293,8 @@ void connectToMqtt()
   DEBUGLOG("lwtqos: %d\r\n", configMqtt.lwtqos);
   DEBUGLOG("lwtretain: %d\r\n", configMqtt.lwtretain);
   DEBUGLOG("lwtpayload: %s\r\n", configMqtt.lwtpayload);
+
+  PRINT("\r\nConnecting to MQTT...\r\n");
 
   mqttClient.connect();
 }
@@ -405,10 +409,10 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
   {
     lastTimePayloadReceived = 0;
 
-    StaticJsonBuffer<maxPayloadLen + 1> jsonBuffer;
-    JsonObject &root = jsonBuffer.parseObject(bufPayload);
+    StaticJsonDocument<maxPayloadLen + 1> root;
+    DeserializationError error = deserializeJson(root, bufPayload);
 
-    if (!root.success())
+    if (error)
     {
       DEBUGLOG("Parsing payload json not succesful.\r\n");
       return;
@@ -417,7 +421,7 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
     const char *voltage;
     const char *watt;
     const char *ampere;
-    if (root["voltage"].success())
+    if (root.containsKey("voltage"))
     {
       voltage = root["voltage"];
       DEBUGLOG("Voltage: %s\r\n", voltage);
@@ -425,7 +429,7 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
       strlcpy(bufVoltage, voltage, sizeof(bufVoltage) / sizeof(bufVoltage[0]));
       dtostrf(atof(bufVoltage), 0, 0, bufVoltage);
     }
-    if (root["watt"].success())
+    if (root.containsKey("watt"))
     {
       watt = root["watt"];
       DEBUGLOG("Watt: %s\r\n", watt);
@@ -433,7 +437,7 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
       strlcpy(bufWatt, watt, sizeof(bufWatt) / sizeof(bufWatt[0]));
       dtostrf(atof(bufWatt), 0, 0, bufWatt);
     }
-    if (root["ampere"].success())
+    if (root.containsKey("ampere"))
     {
       ampere = root["ampere"];
       DEBUGLOG("Ampere: %s\r\n\r\n", ampere);
@@ -500,7 +504,11 @@ void MqttConnectedCb()
   // PRINT("Connected to MQTT.\r\n\tSession present: %d\r\n", sessionPresent);
   PRINT("Connected to MQTT.\r\n");
 
-  const char *fileName = pgm_configfilemqttpubsub;
+  // const char *fileName = pgm_configfilemqttpubsub;
+
+  size_t fileLen = strlen_P(pgm_configfilemqttpubsub);
+  char fileName[fileLen + 1];
+  strcpy_P(fileName, pgm_configfilemqttpubsub);
 
   File file = SPIFFS.open(fileName, "r");
   PRINT("Opening file %s...\r\n", fileName);
@@ -521,13 +529,12 @@ void MqttConnectedCb()
     return;
   }
 
-  // DynamicJsonBuffer jsonBuffer(allocSize);
-  StaticJsonBuffer<allocSize> jsonBuffer;
-  JsonObject &json = jsonBuffer.parseObject(file);
+  StaticJsonDocument<allocSize> json;
+  DeserializationError error = deserializeJson(json, file);
 
   file.close();
 
-  if (!json.success())
+  if (error)
   {
     PRINT("Failed parsing config MQTT file\r\n");
     return;

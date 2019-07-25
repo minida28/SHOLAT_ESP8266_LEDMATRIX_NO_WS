@@ -86,6 +86,7 @@ typedef struct
   char lwttopicprefix[64] = "mqttstatus";
   uint8_t lwtqos = 2;
   bool lwtretain = true;
+  char lwtfulltopic[90];
   char lwtpayload[64] = "DISCONNECTED";
 
   char pub1_basetopic[64];

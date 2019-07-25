@@ -1,6 +1,6 @@
 {
-  "ssid": "your_wifi_ssid",
-  "password": "your_wifi_password",
+  "ssid": "OpenWrt",
+  "password": "miqbal123",
   "dhcp": true,
   "static_ip": "192.168.10.15",
   "netmask": "255.255.255.0",

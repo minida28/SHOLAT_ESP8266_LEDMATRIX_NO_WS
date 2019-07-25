@@ -183,16 +183,29 @@
   <footer class="footer">
     <div class="container">
       <div class="content has-text-centered">
+        <div class="siimple-table-cell"><b>Connected in</b></div>
+        <div id="connTime"></div>
       </div>
     </div>
   </footer>
 
 
   <script>
+  
+    var method = "WEBSOCKET";
+  
     window.onload = function () {
-      getConfigValues("config/location");
-      getConfigValues("/status/sholatschedule");
-      setInterval(function(){ getConfigValues("/status/sholatschedule") }, 1000);
+      if (method === "HTTP") {
+        getConfigValues("config/location");
+        getConfigValues("/status/sholatschedule");
+        setInterval(function(){ getConfigValues("/status/sholatschedule") }, 1000);      
+      }
+      else if (method === "WEBSOCKET") {
+        wsOpen();
+        setInterval(function(){ wsSendUrl() }, 1000);
+        startConnectionTimer();
+      } 
+
       // wsOpen();
       // startPolling();
       // startConnectionTimer();
@@ -350,6 +363,16 @@
       //console.log(text);
     }
     
+    function wsSendUrl() {
+      var obj = new Object();
+      // obj.url = window.location.pathname;
+      obj.url = '/sholat.html';
+      var myJSON = JSON.stringify(obj);
+      console.log(myJSON);
+      // ws.send(myJSON);
+      ws.send(obj.url);
+    }
+    
     function wsOpen() {
       if (ws === undefined || ws.readyState != 0) {
         if (retries) {
@@ -366,13 +389,7 @@
           // setMsg("green", "Connected");
           //ws.send('Hallo from Browser :-) ' + new Date());
           // setInterval(function(){ sendPing() }, 5000);
-          var obj = new Object();
-          // obj.url = window.location.pathname;
-          obj.url = '/sholat.html';
-          var myJSON = JSON.stringify(obj);
-          console.log(myJSON);
-          // ws.send(myJSON);
-          ws.send(obj.url);
+          wsSendUrl();
         };
         ws.onclose = function (evt) {
           //console.log("WebSocket CLOSE ", evt);

@@ -43,6 +43,7 @@ extern bool state250ms;
 extern bool state1000ms;
 
 extern bool timeSetFlag;
+extern bool syncTimeFromRtcFlag;
 extern bool internetAccess;
 
 extern uint32_t now;

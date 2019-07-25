@@ -21,7 +21,7 @@
 #define PRINTPORT Serial
 #define DEBUGPORT Serial
 
-#define RELEASE
+// #define RELEASE
 
 #define PRINT(fmt, ...)                      \
   {                                          \
@@ -41,7 +41,6 @@
 
 #define AP_ENABLE_BUTTON 4 // Button pin to enable AP during startup for configuration. -1 to disable
 
-
 strConfig _config;
 strApConfig _configAP; // Static AP config settings
 strHTTPAuth _httpAuth;
@@ -54,8 +53,10 @@ unsigned long wifiDisconnectedSince = 0;
 String _browserMD5 = "";
 uint32_t _updateSize = 0;
 
+uint32_t timestampReceivedFromWebGUI = 0;
+
 bool autoConnect = false;
-bool autoReconnect = false;
+bool autoReconnect = true;
 
 bool eventsourceTriggered = false;
 bool wsConnected = false;
@@ -82,6 +83,187 @@ FSInfo fs_info;
 DNSServer dnsServer;
 
 AsyncWebServer server(80);
+AsyncWebSocket ws("/ws");
+AsyncEventSource events("/events");
+uint32_t clientID;
+
+bool sendFreeHeapStatusFlag = false;
+bool sendDateTimeFlag = false;
+bool setDateTimeFromGUIFlag = false;
+
+void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len)
+{
+  if (type == WS_EVT_CONNECT)
+  {
+    //client connected
+    clientID = client->id();
+    DEBUGLOG("ws[%s][%u] connect\r\n", server->url(), client->id());
+    client->printf("Hello Client %u :)", client->id());
+    client->ping();
+  }
+  else if (type == WS_EVT_DISCONNECT)
+  {
+    //client disconnected
+    DEBUGLOG("ws[%s][%u] disconnect: [%u]\r\n", server->url(), client->id(), client->id());
+  }
+  else if (type == WS_EVT_ERROR)
+  {
+    //error was received from the other end
+    DEBUGLOG("ws[%s][%u] error(%u): %s\r\n", server->url(), client->id(), *((uint16_t *)arg), (char *)data);
+  }
+  else if (type == WS_EVT_PONG)
+  {
+    //pong message was received (in response to a ping request maybe)
+    DEBUGLOG("ws[%s][%u] pong[%u]: %s\r\n", server->url(), client->id(), len, (len) ? (char *)data : "");
+  }
+  else if (type == WS_EVT_DATA)
+  {
+    //data packet
+    AwsFrameInfo *info = (AwsFrameInfo *)arg;
+
+    // char msg[len + 1];
+
+    if (info->final && info->index == 0 && info->len == len)
+    {
+      //the whole message is in a single frame and we got all of it's data
+      DEBUGLOG("ws[%s][%u] %s-message[%u]: ", server->url(), client->id(), (info->opcode == WS_TEXT) ? "text" : "binary", (uint32_t)info->len);
+      if (info->opcode == WS_TEXT)
+      {
+        data[len] = 0;
+        // os_printf("%s\n", (char *)data);
+        DEBUGLOG("%s\n", (char *)data);
+      }
+      else
+      {
+        for (size_t i = 0; i < info->len; i++)
+        {
+          // os_printf("%02x ", data[i]);
+          DEBUGLOG("%02x ", data[i]);
+        }
+        // os_printf("\n");
+        DEBUGLOG("\n");
+      }
+      if (info->opcode == WS_TEXT)
+        client->text("I got your text message");
+      else
+        client->binary("I got your binary message");
+    }
+    else
+    {
+      //message is comprised of multiple frames or the frame is split into multiple packets
+      if (info->index == 0)
+      {
+        if (info->num == 0)
+          DEBUGLOG("ws[%s][%u] %s-message start\r\n", server->url(), client->id(), (info->message_opcode == WS_TEXT) ? "text" : "binary");
+        DEBUGLOG("ws[%s][%u] frame[%u] start[%llu]\r\n", server->url(), client->id(), info->num, info->len);
+      }
+
+      DEBUGLOG("ws[%s][%u] frame[%u] %s[%llu - %llu]: ", server->url(), client->id(), info->num, (info->message_opcode == WS_TEXT) ? "text" : "binary", info->index, info->index + len);
+      if (info->message_opcode == WS_TEXT)
+      {
+        data[len] = 0;
+        DEBUGLOG("%s\n", (char *)data);
+      }
+      else
+      {
+        for (size_t i = 0; i < len; i++)
+        {
+          DEBUGLOG("%02x ", data[i]);
+        }
+        DEBUGLOG("\n");
+      }
+
+      if ((info->index + len) == info->len)
+      {
+        DEBUGLOG("ws[%s][%u] frame[%u] end[%llu]\r\n", server->url(), client->id(), info->num, info->len);
+        if (info->final)
+        {
+          DEBUGLOG("ws[%s][%u] %s-message end\r\n", server->url(), client->id(), (info->message_opcode == WS_TEXT) ? "text" : "binary");
+          if (info->message_opcode == WS_TEXT)
+            client->text("I got your text message");
+          else
+            client->binary("I got your binary message");
+        }
+      }
+    }
+
+    if (strncmp_P((char *)data, pgm_schedulepagesholat, strlen_P(pgm_schedulepagesholat)) == 0)
+    {
+      // clientVisitSholatTimePage = true;
+      sendSholatSchedule(2);
+    }
+    else if (strncmp_P((char *)data, pgm_settimepage, strlen_P(pgm_settimepage)) == 0)
+    {
+      sendDateTimeFlag = true;
+    }
+    else if (strncmp_P((char *)data, pgm_freeheap, strlen_P(pgm_freeheap)) == 0)
+    {
+      sendFreeHeapStatusFlag = true;
+    }
+    else if (strncmp((char *)data, "/status/datetime", strlen("/status/datetime")) == 0)
+    {
+      sendDateTimeFlag = true;
+    }
+    else if (data[0] == '{')
+    {
+      StaticJsonDocument<1024> root;
+      DeserializationError error = deserializeJson(root, data);
+
+      if (error)
+      {
+        return;
+      }
+
+      //******************************
+      // handle SAVE CONFIG (not fast)
+      //******************************
+
+      if (root.containsKey(FPSTR(pgm_saveconfig)))
+      {
+        const char *saveconfig = root[FPSTR(pgm_saveconfig)];
+
+        //remove json key before saving
+        root.remove(FPSTR(pgm_saveconfig));
+
+        if (false)
+        {
+        }
+        //******************************
+        // save TIME config
+        //******************************
+        else if (strcmp_P(saveconfig, pgm_configpagetime) == 0)
+        {
+          File file = SPIFFS.open(FPSTR(pgm_configfiletime), "w");
+
+          if (!file)
+          {
+            DEBUGLOG("Failed to open TIME config file\r\n");
+            file.close();
+            return;
+          }
+
+          serializeJsonPretty(root, file);
+          file.flush();
+          file.close();
+
+          load_config_time();
+          process_sholat();
+
+          //beep
+          tone1 = HIGH;
+        }
+      }
+    }
+    else if (data[0] == 't' && data[1] == ' ')
+    {
+      char *token = strtok((char *)&data[2], " ");
+
+      timestampReceivedFromWebGUI = (unsigned long)strtol(token, '\0', 10);
+
+      setDateTimeFromGUIFlag = true;
+    }
+  }
+}
 
 void AsyncWSBegin()
 {
@@ -337,6 +519,26 @@ void AsyncWSBegin()
 
   //SPIFFS.begin();
 
+  // attach AsyncWebSocket
+  ws.onEvent(onWsEvent);
+  server.addHandler(&ws);
+
+  // attach AsyncEventSource
+  server.addHandler(&events);
+
+  events.onConnect([](AsyncEventSourceClient *client) {
+    if (client->lastId())
+    {
+      Serial.printf("Client reconnected! Last message ID that it gat is: %u\n", client->lastId());
+    }
+    //send event with message "hello!", id current millis
+    // and set reconnect delay to 1 second
+    client->send("hello!", NULL, millis(), 1000);
+  });
+
+  // HTTP Basic authentication
+  // events.setAuthentication("user", "pass");
+
   server.addHandler(new SPIFFSEditor());
 
   server.on("/list", HTTP_GET, [](AsyncWebServerRequest *request) {
@@ -381,9 +583,9 @@ void AsyncWSBegin()
     buf[size] = '\0';
 
     //close the file, save your memory, keep healthy :-)
-    // file.close();
+    file.close();
 
-    DEBUGLOG("%s\r\n", buf);
+    // DEBUGLOG("%s\r\n", buf);
 
     StreamString output;
 
@@ -516,8 +718,9 @@ void AsyncWSBegin()
     DEBUGLOG("%s\r\n", request->url().c_str());
 
     AsyncResponseStream *response = request->beginResponseStream("application/json");
-    DynamicJsonBuffer jsonBuffer;
-    JsonArray &root = jsonBuffer.createArray();
+    DynamicJsonDocument doc(2048);
+    // JsonArray root = doc.createArray();
+    JsonArray root = doc.to<JsonArray>();
 
     int numberOfNetworks = WiFi.scanComplete();
     if (numberOfNetworks == -2)
@@ -528,7 +731,7 @@ void AsyncWSBegin()
     {
       for (int i = 0; i < numberOfNetworks; ++i)
       {
-        JsonObject &wifi = root.createNestedObject();
+        JsonObject wifi = root.createNestedObject();
         wifi["ssid"] = WiFi.SSID(i);
         wifi["rssi"] = WiFi.RSSI(i);
         wifi["bssid"] = WiFi.BSSIDstr(i);
@@ -542,8 +745,9 @@ void AsyncWSBegin()
         WiFi.scanNetworks(true);
       }
     }
-    root.printTo(*response);
+    serializeJson(root, *response);
     request->send(response);
+    // example: [{"ssid":"OpenWrt","rssi":-10,"bssid":"A2:F3:C1:FF:05:6A","channel":11,"secure":4,"hidden":false},{"ssid":"DIRECT-sQDESKTOP-7HDAOQDmsTR","rssi":-52,"bssid":"22:F3:C1:F8:B1:E9","channel":11,"secure":4,"hidden":false},{"ssid":"galaxi","rssi":-11,"bssid":"A0:F3:C1:FF:05:6A","channel":11,"secure":4,"hidden":false},{"ssid":"HUAWEI-4393","rssi":-82,"bssid":"D4:A1:48:3C:43:93","channel":11,"secure":4,"hidden":false}]
   });
 
   server.on("/admin/restart", [](AsyncWebServerRequest *request) {
@@ -626,12 +830,14 @@ void AsyncWSBegin()
             char *token = strtok((char *)&data[2], " ");
             uint32_t utcTimestamp = (unsigned long)strtol(token, '\0', 10);
 
-            DEBUGLOG("timestanp received: %u\r\n", utcTimestamp);
+            DEBUGLOG("timestamp received: %u\r\n", utcTimestamp);
 
             RtcDateTime timeToSetToRTC;
             timeToSetToRTC.InitWithEpoch32Time(utcTimestamp);
 
             Rtc.SetDateTime(timeToSetToRTC);
+
+            syncTimeFromRtcFlag = true;
 
             // lastSyncRTC = utcTimestamp;
 
@@ -683,19 +889,19 @@ void AsyncWSBegin()
           {
             const char *config = p->value().c_str();
 
-            StaticJsonBuffer<512> jsonBuffer;
-            JsonObject &root = jsonBuffer.parseObject(config);
+            StaticJsonDocument<512> doc;
+            DeserializationError error = deserializeJson(doc, config);
 
             File file = SPIFFS.open(FPSTR(pgm_configfilenetwork), "w");
 
-            if (!file)
+            if (!file || error)
             {
               DEBUGLOG("Failed to open NETWORK config file\r\n");
               file.close();
               return;
             }
 
-            root.prettyPrintTo(file);
+            serializeJsonPretty(doc, file);
             file.flush();
             file.close();
 
@@ -746,19 +952,19 @@ void AsyncWSBegin()
           {
             const char *config = p->value().c_str();
 
-            StaticJsonBuffer<1024> jsonBuffer;
-            JsonObject &root = jsonBuffer.parseObject(config);
+            StaticJsonDocument<512> root;
+            DeserializationError error = deserializeJson(root, config);
 
             File file = SPIFFS.open(FPSTR(pgm_configfilelocation), "w");
 
-            if (!file)
+            if (!file || error)
             {
               DEBUGLOG("Failed to open LOCATION config file\r\n");
               file.close();
               return;
             }
 
-            root.prettyPrintTo(file);
+            serializeJsonPretty(root, file);
             file.flush();
             file.close();
 
@@ -820,19 +1026,19 @@ void AsyncWSBegin()
           {
             const char *config = p->value().c_str();
 
-            StaticJsonBuffer<1024> jsonBuffer;
-            JsonObject &root = jsonBuffer.parseObject(config);
+            StaticJsonDocument<512> root;
+            DeserializationError error = deserializeJson(root, config);
 
             File file = SPIFFS.open(FPSTR(pgm_configfileledmatrix), "w");
 
-            if (!file)
+            if (!file || error)
             {
               DEBUGLOG("Failed to open LED MATRIX config file\r\n");
               file.close();
               return;
             }
 
-            root.prettyPrintTo(file);
+            serializeJsonPretty(root, file);
             file.flush();
             file.close();
 
@@ -911,19 +1117,19 @@ void AsyncWSBegin()
           {
             const char *config = p->value().c_str();
 
-            StaticJsonBuffer<512> jsonBuffer;
-            JsonObject &root = jsonBuffer.parseObject(config);
+            StaticJsonDocument<512> root;
+            DeserializationError error = deserializeJson(root, config);
 
             File file = SPIFFS.open(FPSTR(pgm_configfilemqtt), "w");
 
-            if (!file)
+            if (!file || error)
             {
               DEBUGLOG("Failed to open MQTT config file\r\n");
               file.close();
               return;
             }
 
-            root.prettyPrintTo(file);
+            serializeJsonPretty(root, file);
             file.flush();
             file.close();
 
@@ -942,19 +1148,19 @@ void AsyncWSBegin()
           {
             const char *config = p->value().c_str();
 
-            StaticJsonBuffer<512> jsonBuffer;
-            JsonObject &root = jsonBuffer.parseObject(config);
+            StaticJsonDocument<512> root;
+            DeserializationError error = deserializeJson(root, config);
 
             File file = SPIFFS.open(FPSTR(pgm_configfilemqttpubsub), "w");
 
-            if (!file)
+            if (!file || error)
             {
               DEBUGLOG("Failed to open MQTT PUBSUB config file\r\n");
               file.close();
               return;
             }
 
-            root.prettyPrintTo(file);
+            serializeJsonPretty(root, file);
             file.flush();
             file.close();
 
@@ -981,8 +1187,7 @@ void AsyncWSBegin()
     DEBUGLOG("%s\r\n", __PRETTY_FUNCTION__);
 
     AsyncResponseStream *response = request->beginResponseStream("application/json");
-    DynamicJsonBuffer jsonBuffer;
-    JsonObject &root = jsonBuffer.createObject();
+    DynamicJsonDocument root(2048);
 
     root[FPSTR(pgm_type)] = FPSTR(pgm_sholatdynamic);
     root[FPSTR(pgm_h)] = HOUR;
@@ -1001,7 +1206,7 @@ void AsyncWSBegin()
     root[FPSTR(pgm_maghrib)] = sholatTimeArray[5];
     root[FPSTR(pgm_isya)] = sholatTimeArray[6];
 
-    root.printTo(*response);
+    serializeJson(root, *response);
     request->send(response);
   });
 
@@ -1009,8 +1214,7 @@ void AsyncWSBegin()
     DEBUGLOG("%s\r\n", request->url().c_str());
 
     AsyncResponseStream *response = request->beginResponseStream("application/json");
-    DynamicJsonBuffer jsonBuffer;
-    JsonObject &root = jsonBuffer.createObject();
+    DynamicJsonDocument root(2048);
 
     root[FPSTR(pgm_chipid)] = ESP.getChipId();
     root[FPSTR(pgm_hostname)] = WiFi.hostname();
@@ -1037,7 +1241,7 @@ void AsyncWSBegin()
     root[FPSTR(pgm_dns0)] = WiFi.dnsIP().toString();
     root[FPSTR(pgm_dns1)] = WiFi.dnsIP(1).toString();
 
-    root.printTo(*response);
+    serializeJson(root, *response);
     request->send(response);
   });
 
@@ -1045,8 +1249,7 @@ void AsyncWSBegin()
     DEBUGLOG("%s\r\n", request->url().c_str());
 
     AsyncResponseStream *response = request->beginResponseStream("application/json");
-    DynamicJsonBuffer jsonBuffer;
-    JsonObject &root = jsonBuffer.createObject();
+    DynamicJsonDocument root(2048);
 
     RtcDateTime dt;
     dt.InitWithEpoch32Time(localTime);
@@ -1098,7 +1301,7 @@ void AsyncWSBegin()
     root["ping_seq_num_send"] = ping_seq_num_send;
     root["ping_seq_num_recv"] = ping_seq_num_recv;
 
-    root.printTo(*response);
+    serializeJson(root, *response);
     request->send(response);
   });
 
@@ -1108,10 +1311,9 @@ void AsyncWSBegin()
     uint32_t heap = ESP.getFreeHeap();
 
     AsyncResponseStream *response = request->beginResponseStream("application/json");
-    DynamicJsonBuffer jsonBuffer;
-    JsonObject &root = jsonBuffer.createObject();
+    StaticJsonDocument<256> root;
     root["heap"] = heap;
-    root.printTo(*response);
+    serializeJson(root, *response);
     request->send(response);
   });
 
@@ -1119,10 +1321,9 @@ void AsyncWSBegin()
     DEBUGLOG("%s\r\n", request->url().c_str());
 
     AsyncResponseStream *response = request->beginResponseStream("application/json");
-    DynamicJsonBuffer jsonBuffer;
-    JsonObject &root = jsonBuffer.createObject();
+    StaticJsonDocument<256> root;
     root["connected"] = mqttClient.connected();
-    root.printTo(*response);
+    serializeJson(root, *response);
     request->send(response);
   });
 
@@ -1326,8 +1527,7 @@ void send_wwwauth_configuration_values_html(AsyncWebServerRequest *request)
 {
   DEBUGLOG("%s\r\n", __PRETTY_FUNCTION__);
 
-  StaticJsonBuffer<512> jsonBuffer;
-  JsonObject &root = jsonBuffer.createObject();
+  StaticJsonDocument<512> root;
   if (_httpAuth.auth)
   {
     root[FPSTR(pgm_wwwauth)] = true;
@@ -1340,7 +1540,7 @@ void send_wwwauth_configuration_values_html(AsyncWebServerRequest *request)
   root[FPSTR(pgm_wwwpass)] = _httpAuth.wwwPassword;
 
   AsyncResponseStream *response = request->beginResponseStream("text/plain");
-  root.printTo(*response);
+  serializeJson(root, *response);
   request->send(response);
 }
 
@@ -1414,8 +1614,7 @@ bool saveHTTPAuth()
 {
   DEBUGLOG("%s\r\n", __PRETTY_FUNCTION__);
 
-  StaticJsonBuffer<512> jsonBuffer;
-  JsonObject &json = jsonBuffer.createObject();
+  StaticJsonDocument<512> json;
   json[FPSTR(pgm_wwwauth)] = _httpAuth.auth;
   json[FPSTR(pgm_wwwuser)] = _httpAuth.wwwUsername;
   json[FPSTR(pgm_wwwpass)] = _httpAuth.wwwPassword;
@@ -1433,11 +1632,11 @@ bool saveHTTPAuth()
   }
 
 #ifndef RELEASEASYNCWS
-  json.prettyPrintTo(DEBUGPORT);
+  serializeJsonPretty(json, DEBUGPORT);
   DEBUGLOG("\r\n");
 #endif // RELEASE
 
-  json.prettyPrintTo(file);
+  serializeJsonPretty(json, file);
   file.flush();
   file.close();
   return true;
@@ -1604,8 +1803,7 @@ void send_config_network(AsyncWebServerRequest *request)
   DEBUGLOG("%s\r\n", __PRETTY_FUNCTION__);
 
   AsyncResponseStream *response = request->beginResponseStream("application/json");
-  DynamicJsonBuffer jsonBuffer;
-  JsonObject &root = jsonBuffer.createObject();
+  DynamicJsonDocument root(2048);
 
   root[FPSTR(pgm_hostname)] = _config.hostname;
   root[FPSTR(pgm_ssid)] = _config.ssid;
@@ -1617,7 +1815,8 @@ void send_config_network(AsyncWebServerRequest *request)
   root[FPSTR(pgm_dns0)] = _config.dns0;
   root[FPSTR(pgm_dns1)] = _config.dns1;
 
-  root.prettyPrintTo(*response);
+  serializeJsonPretty(root, *response);
+
   request->send(response);
 }
 
@@ -1626,8 +1825,7 @@ void send_config_location(AsyncWebServerRequest *request)
   DEBUGLOG("%s\r\n", __PRETTY_FUNCTION__);
 
   AsyncResponseStream *response = request->beginResponseStream("application/json");
-  StaticJsonBuffer<256> jsonBuffer;
-  JsonObject &root = jsonBuffer.createObject();
+  StaticJsonDocument<256> root;
 
   root[FPSTR(pgm_province)] = _configLocation.province;
   root[FPSTR(pgm_regency)] = _configLocation.regency;
@@ -1637,7 +1835,7 @@ void send_config_location(AsyncWebServerRequest *request)
   root[FPSTR(pgm_latitude)] = _configLocation.latitude;
   root[FPSTR(pgm_longitude)] = _configLocation.longitude;
 
-  root.prettyPrintTo(*response);
+  serializeJsonPretty(root, *response);
   request->send(response);
 }
 
@@ -1646,8 +1844,7 @@ void send_config_time(AsyncWebServerRequest *request)
   DEBUGLOG("%s\r\n", __PRETTY_FUNCTION__);
 
   AsyncResponseStream *response = request->beginResponseStream("application/json");
-  DynamicJsonBuffer jsonBuffer;
-  JsonObject &root = jsonBuffer.createObject();
+  DynamicJsonDocument root(2048);
 
   root[FPSTR(pgm_dst)] = _configTime.dst;
   root[FPSTR(pgm_enablertc)] = _configTime.enablertc;
@@ -1657,7 +1854,7 @@ void send_config_time(AsyncWebServerRequest *request)
   root[FPSTR(pgm_ntpserver_2)] = _configTime.ntpserver_2;
   root[FPSTR(pgm_syncinterval)] = _configTime.syncinterval;
 
-  root.prettyPrintTo(*response);
+  serializeJsonPretty(root, *response);
   request->send(response);
 }
 
@@ -1666,8 +1863,7 @@ void send_config_sholat(AsyncWebServerRequest *request)
   DEBUGLOG("%s\r\n", __PRETTY_FUNCTION__);
 
   AsyncResponseStream *response = request->beginResponseStream("application/json");
-  DynamicJsonBuffer jsonBuffer;
-  JsonObject &root = jsonBuffer.createObject();
+  DynamicJsonDocument root(2048);
 
   root[FPSTR(pgm_province)] = _configLocation.province;
   root[FPSTR(pgm_regency)] = _configLocation.regency;
@@ -1748,7 +1944,7 @@ void send_config_sholat(AsyncWebServerRequest *request)
   root[FPSTR(pgm_offsetMaghrib)] = _sholatConfig.offsetMaghrib;
   root[FPSTR(pgm_offsetIsha)] = _sholatConfig.offsetIsha;
 
-  root.prettyPrintTo(*response);
+  serializeJsonPretty(root, *response);
   request->send(response);
 }
 
@@ -1757,8 +1953,7 @@ void send_config_ledmatrix(AsyncWebServerRequest *request)
   DEBUGLOG("%s\r\n", __PRETTY_FUNCTION__);
 
   AsyncResponseStream *response = request->beginResponseStream("application/json");
-  DynamicJsonBuffer jsonBuffer;
-  JsonObject &root = jsonBuffer.createObject();
+  DynamicJsonDocument root(2048);
 
   // root[FPSTR(pgm_type)] = FPSTR(pgm_matrixconfig);
   root[FPSTR(pgm_pagemode0)] = _ledMatrixSettings.pagemode0;
@@ -1783,7 +1978,7 @@ void send_config_ledmatrix(AsyncWebServerRequest *request)
   root[FPSTR(pgm_adzanwaittime)] = _ledMatrixSettings.adzanwaittime;
   root[FPSTR(pgm_iqamahwaittime)] = _ledMatrixSettings.iqamahwaittime;
 
-  root.prettyPrintTo(*response);
+  serializeJsonPretty(root, *response);
   request->send(response);
 }
 
@@ -1792,8 +1987,7 @@ void send_config_mqtt(AsyncWebServerRequest *request)
   DEBUGLOG("%s\r\n", __PRETTY_FUNCTION__);
 
   AsyncResponseStream *response = request->beginResponseStream("application/json");
-  DynamicJsonBuffer jsonBuffer;
-  JsonObject &root = jsonBuffer.createObject();
+  DynamicJsonDocument root(2048);
 
   root[FPSTR(pgm_mqtt_enabled)] = configMqtt.enabled;
   root[FPSTR(pgm_mqtt_server)] = configMqtt.server;
@@ -1808,7 +2002,7 @@ void send_config_mqtt(AsyncWebServerRequest *request)
   root[FPSTR(pgm_mqtt_lwtretain)] = configMqtt.lwtretain;
   root[FPSTR(pgm_mqtt_lwtpayload)] = configMqtt.lwtpayload;
 
-  root.printTo(*response);
+  serializeJson(root, *response);
   request->send(response);
 }
 
@@ -1863,32 +2057,33 @@ bool load_config_location()
     return false;
   }
 
-  size_t size = file.size();
-  DEBUGLOG("config LOCATION file size: %d bytes\r\n", size);
+  // size_t size = file.size();
+  DEBUGLOG("config LOCATION file size: %d bytes\r\n", file.size());
 
-  StaticJsonBuffer<512> jsonBuffer;
-  JsonObject &root = jsonBuffer.parseObject(file);
+  StaticJsonDocument<512> root;
+  DeserializationError error = deserializeJson(root, file);
+
   file.close();
 
-  if (!root.success())
+  if (error)
   {
     DEBUGLOG("Failed to parse config LOCATION file\r\n");
     return false;
   }
 
 #ifndef RELEASEASYNCWS
-  root.prettyPrintTo(DEBUGPORT);
+  serializeJsonPretty(root, DEBUGPORT);
 #endif
 
-  if (root[FPSTR(pgm_province)].success())
+  if (root.containsKey(FPSTR(pgm_province)))
   {
     strlcpy(_configLocation.province, root[FPSTR(pgm_province)], sizeof(_configLocation.province));
   }
-  if (root[FPSTR(pgm_regency)].success())
+  if (root.containsKey(FPSTR(pgm_regency)))
   {
     strlcpy(_configLocation.regency, root[FPSTR(pgm_regency)], sizeof(_configLocation.regency));
   }
-  if (root[FPSTR(pgm_district)].success())
+  if (root.containsKey(FPSTR(pgm_district)))
   {
     strlcpy(_configLocation.district, root[FPSTR(pgm_district)], sizeof(_configLocation.district));
   }
@@ -1896,15 +2091,16 @@ bool load_config_location()
   // {
   //   _configLocation.timezone = root[FPSTR(pgm_timezone)];
   // }
-  if (root[FPSTR(pgm_timezonestring)].success())
+  // if (root[FPSTR(pgm_timezonestring)].success())
+  if (root.containsKey(FPSTR(pgm_timezonestring)))
   {
     strlcpy(_configLocation.timezonestring, root[FPSTR(pgm_timezonestring)], sizeof(_configLocation.timezonestring));
   }
-  if (root[FPSTR(pgm_latitude)].success())
+  if (root.containsKey(FPSTR(pgm_latitude)))
   {
     _configLocation.latitude = root[FPSTR(pgm_latitude)];
   }
-  if (root[FPSTR(pgm_longitude)].success())
+  if (root.containsKey(FPSTR(pgm_longitude)))
   {
     _configLocation.longitude = root[FPSTR(pgm_longitude)];
   }
@@ -1935,19 +2131,19 @@ bool load_config_network()
   // size_t size = file.size();
   DEBUGLOG("JSON file size: %d bytes\r\n", file.size());
 
-  StaticJsonBuffer<512> jsonBuffer;
-  JsonObject &root = jsonBuffer.parseObject(file);
+  StaticJsonDocument<512> root;
+  DeserializationError error = deserializeJson(root, file);
 
   file.close();
 
-  if (!root.success())
+  if (error)
   {
     DEBUGLOG("Failed to parse config NETWORK file\r\n");
     return false;
   }
 
 #ifndef RELEASEASYNCWS
-  root.prettyPrintTo(DEBUGPORT);
+  serializeJsonPretty(root, DEBUGPORT);
   DEBUGLOG("\r\n");
 #endif
 
@@ -2002,17 +2198,17 @@ bool load_config_time()
   //close the file, save your memory, keep healthy :-)
   file.close();
 
-  StaticJsonBuffer<512> jsonBuffer;
-  JsonObject &root = jsonBuffer.parseObject(buf);
+  StaticJsonDocument<512> root;
+  DeserializationError error = deserializeJson(root, buf);
 
-  if (!root.success())
+  if (error)
   {
     DEBUGLOG("Failed to parse config TIME file\r\n");
     return false;
   }
 
 #ifndef RELEASEASYNCWS
-  root.prettyPrintTo(DEBUGPORT);
+  serializeJsonPretty(root, DEBUGPORT);
   DEBUGLOG("\r\n");
 
 #endif
@@ -2070,17 +2266,17 @@ bool load_config_sholat()
   //close the file, save your memory, keep healthy :-)
   file.close();
 
-  DynamicJsonBuffer jsonBuffer;
-  JsonObject &root = jsonBuffer.parseObject(buf);
+  DynamicJsonDocument root(2048);
+  DeserializationError error = deserializeJson(root, buf);
 
-  if (!root.success())
+  if (error)
   {
     DEBUGLOG("Failed to parse config file\r\n");
     return false;
   }
 
 #ifndef RELEASEASYNCWS
-  root.prettyPrintTo(DEBUGPORT);
+  serializeJsonPretty(root, DEBUGPORT);
   DEBUGLOG("\r\n");
 
 #endif
@@ -2224,17 +2420,17 @@ bool load_config_ledmatrix()
   //close the file, save your memory, keep healthy :-)
   file.close();
 
-  DynamicJsonBuffer jsonBuffer;
-  JsonObject &root = jsonBuffer.parseObject(buf);
+  DynamicJsonDocument root(2048);
+  DeserializationError error = deserializeJson(root, buf);
 
-  if (!root.success())
+  if (error)
   {
     DEBUGLOG("Failed to parse config LEDMATRIX file\r\n");
     return false;
   }
 
 #ifndef RELEASEASYNCWS
-  root.prettyPrintTo(DEBUGPORT);
+  serializeJsonPretty(root, DEBUGPORT);
   DEBUGLOG("\r\n");
 
 #endif
@@ -2325,24 +2521,24 @@ bool load_config_httpauth()
   //close the file, save your memory, keep healthy :-)
   file.close();
 
-  DynamicJsonBuffer jsonBuffer;
-  JsonObject &root = jsonBuffer.parseObject(buf);
+  DynamicJsonDocument root(2048);
+  DeserializationError error = deserializeJson(root, buf);
 
-  if (!root.success())
+  if (error)
   {
     DEBUGLOG("Failed to parse json file\r\n");
     return false;
   }
 
 #ifndef RELEASEASYNCWS
-  root.prettyPrintTo(DEBUGPORT);
+  serializeJsonPretty(root, DEBUGPORT);
   DEBUGLOG("\r\n");
 #endif
 
   if (
-      !root[FPSTR(pgm_wwwauth)].success() ||
-      !root[FPSTR(pgm_wwwuser)].success() ||
-      !root[FPSTR(pgm_wwwpass)].success())
+      !root.containsKey(FPSTR(pgm_wwwauth)) ||
+      !root.containsKey(FPSTR(pgm_wwwuser)) ||
+      !root.containsKey(FPSTR(pgm_wwwpass)))
   {
     DEBUGLOG("Failed to parse httpAuth json file\r\n");
     return false;
@@ -2369,8 +2565,7 @@ bool save_config_network()
 {
   DEBUGLOG("%s\r\n", __PRETTY_FUNCTION__);
 
-  StaticJsonBuffer<1024> jsonBuffer;
-  JsonObject &json = jsonBuffer.createObject();
+  StaticJsonDocument<1024> json;
   // json[FPSTR(pgm_hostname)] = _config.hostname;
   json[FPSTR(pgm_ssid)] = _config.ssid;
   json[FPSTR(pgm_password)] = _config.password;
@@ -2385,14 +2580,14 @@ bool save_config_network()
   File file = SPIFFS.open(FPSTR(pgm_configfilenetwork), "w");
 
 #ifndef RELEASEASYNCWS
-  json.prettyPrintTo(DEBUGPORT);
+  serializeJsonPretty(json, DEBUGPORT);
   DEBUGLOG("\r\n");
 #endif
 
   // EEPROM_write_char(eeprom_wifi_ssid_start, eeprom_wifi_ssid_size, _config.ssid);
   // EEPROM_write_char(eeprom_wifi_password_start, eeprom_wifi_password_size, wifi_password);
 
-  json.prettyPrintTo(file);
+  serializeJsonPretty(json, file);
   file.flush();
   file.close();
   return true;
@@ -2405,8 +2600,7 @@ bool save_config_location()
 {
   DEBUGLOG("%s\r\n", __PRETTY_FUNCTION__);
 
-  StaticJsonBuffer<512> jsonBuffer;
-  JsonObject &json = jsonBuffer.createObject();
+  StaticJsonDocument<512> json;
 
   json[FPSTR(pgm_province)] = _configLocation.province;
   json[FPSTR(pgm_regency)] = _configLocation.regency;
@@ -2418,11 +2612,11 @@ bool save_config_location()
   File file = SPIFFS.open(FPSTR(pgm_configfilelocation), "w");
 
 #ifndef RELEASEASYNCWS
-  json.prettyPrintTo(DEBUGPORT);
+  serializeJsonPretty(json, DEBUGPORT);
   DEBUGLOG("\r\n");
 #endif
 
-  json.prettyPrintTo(file);
+  serializeJsonPretty(json, file);
   file.flush();
   file.close();
   return true;
@@ -2435,8 +2629,7 @@ bool save_config_time()
 {
   DEBUGLOG("%s\r\n", __PRETTY_FUNCTION__);
 
-  StaticJsonBuffer<512> jsonBuffer;
-  JsonObject &json = jsonBuffer.createObject();
+  StaticJsonDocument<512> json;
 
   json[FPSTR(pgm_dst)] = _configTime.dst;
   json[FPSTR(pgm_enablertc)] = _configTime.enablertc;
@@ -2453,11 +2646,11 @@ bool save_config_time()
   File file = SPIFFS.open(FPSTR(pgm_configfiletime), "w");
 
 #ifndef RELEASEASYNCWS
-  json.prettyPrintTo(DEBUGPORT);
+  serializeJsonPretty(json, DEBUGPORT);
   DEBUGLOG("\r\n");
 #endif
 
-  json.prettyPrintTo(file);
+  serializeJsonPretty(json, file);
   file.flush();
   file.close();
   return true;
@@ -2470,8 +2663,7 @@ bool save_config_sholat()
 {
   DEBUGLOG("%s\r\n", __PRETTY_FUNCTION__);
 
-  StaticJsonBuffer<1024> jsonBuffer;
-  JsonObject &root = jsonBuffer.createObject();
+  StaticJsonDocument<1024> root;
 
   //root[FPSTR(pgm_location)] = _sholatConfig.location;
   //root[FPSTR(pgm_timezone)] = _sholatConfig.timezone;
@@ -2549,12 +2741,12 @@ bool save_config_sholat()
   root[FPSTR(pgm_offsetIsha)] = _sholatConfig.offsetIsha;
 
 #ifndef RELEASEASYNCWS
-  root.prettyPrintTo(DEBUGPORT);
+  serializeJsonPretty(root, DEBUGPORT);
   DEBUGLOG("\r\n");
 #endif
 
   File file = SPIFFS.open(FPSTR(pgm_configfilesholat), "w");
-  root.prettyPrintTo(file);
+  serializeJsonPretty(root, file);
   file.flush();
   file.close();
   return true;
@@ -2567,8 +2759,7 @@ bool save_config_ledmatrix()
 {
   DEBUGLOG("%s\r\n", __PRETTY_FUNCTION__);
 
-  StaticJsonBuffer<1024> jsonBuffer;
-  JsonObject &root = jsonBuffer.createObject();
+  StaticJsonDocument<1024> root;
 
   uint8_t opmode = 0;
 
@@ -2607,12 +2798,12 @@ bool save_config_ledmatrix()
   root[FPSTR(pgm_iqamahwaittime)] = _ledMatrixSettings.iqamahwaittime;
 
 #ifndef RELEASEASYNCWS
-  root.prettyPrintTo(DEBUGPORT);
+  serializeJsonPretty(root, DEBUGPORT);
   DEBUGLOG("\r\n");
 #endif
 
   File file = SPIFFS.open(FPSTR(pgm_configfileledmatrix), "w");
-  root.prettyPrintTo(file);
+  serializeJsonPretty(root, file);
   file.flush();
   file.close();
   return true;
@@ -2864,7 +3055,7 @@ bool loadHTTPAuth()
   DEBUGLOG("%s\r\n", __PRETTY_FUNCTION__);
 
   const char *fileName = pgm_SECRET_FILE;
-  
+
   File configFile = SPIFFS.open(fileName, "r");
   if (!configFile)
   {
@@ -2887,15 +3078,15 @@ bool loadHTTPAuth()
   configFile.readBytes(buf.get(), size);
   configFile.close();
   DEBUGLOG("JSON secret file size: %d bytes\r\n", size);
-  DynamicJsonBuffer jsonBuffer;
-  //StaticJsonBuffer<256> jsonBuffer;
-  JsonObject &json = jsonBuffer.parseObject(buf.get());
 
-  if (!json.success())
+  DynamicJsonDocument json(2048);
+  DeserializationError error = deserializeJson(json, buf.get());
+
+  if (error)
   {
 #ifndef RELEASE
     //String temp;
-    json.prettyPrintTo(DEBUGPORT);
+    serializeJsonPretty(json, DEBUGPORT);
     PRINT("\r\n");
     PRINT("Failed to parse secret file\r\n");
 #endif // RELEASE
@@ -2904,7 +3095,7 @@ bool loadHTTPAuth()
   }
 #ifndef RELEASE
   //String temp;
-  json.prettyPrintTo(DEBUGPORT);
+  serializeJsonPretty(json, DEBUGPORT);
   PRINT("\r\n");
 #endif // RELEASE
 
@@ -3061,7 +3252,8 @@ void AsyncWSLoop()
     wifiGotIpFlag = false;
 
     WiFi.setAutoConnect(autoConnect);
-    WiFi.setAutoReconnect(autoReconnect);
+    // WiFi.setAutoReconnect(autoReconnect);
+    WiFi.setAutoReconnect(true);
 
     uint8_t mode = WiFi.getMode();
     if (mode == WIFI_AP)
@@ -3184,6 +3376,196 @@ void AsyncWSLoop()
       WiFi.reconnect();
     }
   }
+
+  if (sendFreeHeapStatusFlag)
+  {
+    sendFreeHeapStatusFlag = false;
+    sendHeap(2);
+  }
+
+  if (sendDateTimeFlag)
+  {
+    sendDateTimeFlag = false;
+    sendDateTime(2);
+  }
+
+  if (setDateTimeFromGUIFlag)
+  {
+    setDateTimeFromGUIFlag = false;
+
+    DEBUGLOG("timestamp received: %u\r\n", timestampReceivedFromWebGUI);
+
+    RtcDateTime timeToSetToRTC;
+    timeToSetToRTC.InitWithEpoch32Time(timestampReceivedFromWebGUI);
+
+    Rtc.SetDateTime(timeToSetToRTC);
+
+    syncTimeFromRtcFlag = true;
+
+    // lastSyncRTC = utcTimestamp;
+
+    lastSync = timestampReceivedFromWebGUI;
+
+    //beep
+    tone0 = HIGH;
+  }
+}
+
+void sendSholatSchedule(uint8_t mode)
+{
+  DEBUGLOG("%s\r\n", __PRETTY_FUNCTION__);
+
+  StaticJsonDocument<512> root;
+
+  root[FPSTR(pgm_type)] = FPSTR(pgm_sholatdynamic);
+  root[FPSTR(pgm_h)] = HOUR;
+  root[FPSTR(pgm_m)] = MINUTE;
+  root[FPSTR(pgm_s)] = SECOND;
+  root[FPSTR(pgm_curr)] = sholatNameStr(CURRENTTIMEID);
+  root[FPSTR(pgm_next)] = sholatNameStr(NEXTTIMEID);
+
+  root[FPSTR(pgm_loc)] = _configLocation.district;
+  //  root[FPSTR(pgm_day)] = dayNameStr(weekday(local_time()));
+  //  root[FPSTR(pgm_date)] = getDateStr(local_time());
+  root[FPSTR(pgm_fajr)] = sholatTimeArray[0];
+  root[FPSTR(pgm_syuruq)] = sholatTimeArray[1];
+  root[FPSTR(pgm_dhuhr)] = sholatTimeArray[2];
+  root[FPSTR(pgm_ashr)] = sholatTimeArray[3];
+  root[FPSTR(pgm_maghrib)] = sholatTimeArray[5];
+  root[FPSTR(pgm_isya)] = sholatTimeArray[6];
+
+  size_t len = measureJson(root);
+  char buf[len + 1];
+  serializeJson(root, buf, len + 1);
+
+  if (mode == 0)
+  {
+    //
+  }
+  else if (mode == 1)
+  {
+    events.send(buf, "sholatschedule");
+  }
+  else if (mode == 2)
+  {
+    ws.text(clientID, buf);
+  }
+}
+
+void sendDateTime(uint8_t mode)
+{
+  DEBUGLOG("%s\r\n", __PRETTY_FUNCTION__);
+
+  DynamicJsonDocument root(2048);
+
+  RtcDateTime dt;
+  dt.InitWithEpoch32Time(localTime);
+
+  root["d"] = dt.Day();
+  root["m"] = dt.Month();
+  root["y"] = dt.Year();
+  root["hr"] = dt.Hour();
+  root["min"] = dt.Minute();
+  root["sec"] = dt.Second();
+  // root["tz"] = TimezoneFloat();
+  root["tzStr"] = _configLocation.timezonestring;
+  root["utc"] = now;
+  root["local"] = localTime;
+
+  root[FPSTR(pgm_date)] = getDateStr(localTime);
+  root[FPSTR(pgm_time)] = getTimeStr(localTime);
+  root[FPSTR(pgm_uptime)] = getUptimeStr();
+  root[FPSTR(pgm_lastboot)] = getLastBootStr();
+  if (lastSync != 0)
+  {
+    root[FPSTR(pgm_lastsync)] = getLastSyncStr(lastSync);
+    root[FPSTR(pgm_nextsync)] = getNextSyncStr();
+  }
+  else
+  {
+    root[FPSTR(pgm_lastsync)] = FPSTR(pgm_never);
+    root[FPSTR(pgm_nextsync)] = getNextSyncStr();
+  }
+
+  if (lastSyncByNtp)
+  {
+    root[FPSTR(pgm_lastsyncbyntp)] = getLastSyncStr(lastSyncByNtp);
+  }
+  else
+  {
+    root[FPSTR(pgm_lastsyncbyntp)] = FPSTR(pgm_never);
+  }
+
+  if (lastSyncByRtc)
+  {
+    root[FPSTR(pgm_lastsyncbyrtc)] = getLastSyncStr(lastSyncByRtc);
+  }
+  else
+  {
+    root[FPSTR(pgm_lastsyncbyrtc)] = FPSTR(pgm_never);
+  }
+
+  root["ping_seq_num_send"] = ping_seq_num_send;
+  root["ping_seq_num_recv"] = ping_seq_num_recv;
+
+  size_t len = measureJson(root);
+  char buf[len + 1];
+  serializeJson(root, buf, len + 1);
+
+  if (mode == 0)
+  {
+    //
+  }
+  else if (mode == 1)
+  {
+    events.send(buf);
+    // events.send(buf, "timeDate", millis());
+  }
+  else if (mode == 2)
+  {
+    if (ws.hasClient(clientID))
+    {
+      ws.text(clientID, buf);
+    }
+    else
+    {
+      DEBUGLOG("ClientID %d is no longer available.\r\n", clientID);
+    }
+  }
+}
+
+void sendHeap(uint8_t mode)
+{
+  DEBUGLOG("%s\r\n", __PRETTY_FUNCTION__);
+
+  uint32_t heap = ESP.getFreeHeap();
+
+  StaticJsonDocument<256> root;
+  root["heap"] = heap;
+
+  size_t len = measureJson(root);
+  char buf[len + 1];
+  serializeJson(root, buf, len + 1);
+
+  if (mode == 0)
+  {
+    //
+  }
+  else if (mode == 1)
+  {
+    events.send(buf, "heap");
+  }
+  else if (mode == 2)
+  {
+    if (ws.hasClient(clientID))
+    {
+      ws.text(clientID, buf);
+    }
+    else
+    {
+      DEBUGLOG("ClientID %d is no longer available.\r\n", clientID);
+    }
+  }
 }
 
 int pgm_lastIndexOf(uint8_t c, const char *p)
@@ -3207,7 +3589,11 @@ bool save_system_info()
 
   // const char* pathtofile = PSTR(pgm_filesystemoverview);
 
-  const char* fileName = pgm_systeminfofile;
+  // String fileName = FPSTR(pgm_systeminfofile);
+
+  size_t fileLen = strlen_P(pgm_systeminfofile);
+  char fileName[fileLen + 1];
+  strcpy_P(fileName, pgm_systeminfofile);
 
   File file;
   if (!SPIFFS.exists(fileName))
@@ -3282,8 +3668,7 @@ bool save_system_info()
   char compileTime[lenCompileTime + 1];
   strcpy_P(compileTime, PSTR(__TIME__));
 
-  StaticJsonBuffer<1024> jsonBuffer;
-  JsonObject &root = jsonBuffer.createObject();
+  StaticJsonDocument<1024> root;
 
   SPIFFS.info(fs_info);
 
@@ -3314,7 +3699,7 @@ bool save_system_info()
   root[FPSTR(pgm_bootversion)] = ESP.getBootVersion();
   root[FPSTR(pgm_resetreason)] = ESP.getResetReason();
 
-  root.prettyPrintTo(file);
+  serializeJsonPretty(root, file);
   file.flush();
   file.close();
   return true;

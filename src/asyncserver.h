@@ -140,7 +140,7 @@ bool saveHTTPAuth();
 // void sendNetworkStatus(uint8_t mode);
 // void sendConfigSholat(uint8_t mode);
 void sendSholatSchedule(uint8_t mode);
-// void sendHeap(uint8_t mode);
+void sendHeap(uint8_t mode);
 void sendDateTime(uint8_t mode);
 // void sendTimeStatus(uint8_t mode);
 
