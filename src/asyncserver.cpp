@@ -9,6 +9,7 @@
 #include "asyncserver.h"
 // #include "buzzer.h"
 // #include "mqtt.h"
+#include "asyncpinghelper.h"
 
 #if defined(ARDUINO) && ARDUINO >= 100
 #include "Arduino.h"
@@ -62,6 +63,7 @@ bool eventsourceTriggered = false;
 bool wsConnected = false;
 bool configFileNetworkUpdatedFlag = false;
 bool configFileLocationUpdated = false;
+bool configFileTimeUpdated = false;
 
 WiFiEventHandler onStationModeConnectedHandler, onStationModeGotIPHandler, onStationModeDisconnectedHandler;
 WiFiEventHandler stationConnectedHandler;
@@ -246,8 +248,7 @@ void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventTyp
           file.flush();
           file.close();
 
-          load_config_time();
-          process_sholat();
+          configFileTimeUpdated = true;
 
           //beep
           tone1 = HIGH;
@@ -841,7 +842,7 @@ void AsyncWSBegin()
 
             // lastSyncRTC = utcTimestamp;
 
-            lastSync = utcTimestamp;
+            _configTime.lastsync = utcTimestamp;
 
             //beep
             tone1 = HIGH;
@@ -1210,6 +1211,44 @@ void AsyncWSBegin()
     request->send(response);
   });
 
+  server.on("/status/sholatschedule2", [](AsyncWebServerRequest *request) {
+    AsyncResponseStream *response = request->beginResponseStream("application/json");
+    DynamicJsonDocument doc(2048);
+
+    // JsonArray root = doc.to<JsonArray>();
+
+    JsonObject root = doc.to<JsonObject>();
+    root[FPSTR(pgm_loc)] = _configLocation.district;
+    root[FPSTR(pgm_curr)] = sholatNameStr(CURRENTTIMEID);
+    root[FPSTR(pgm_next)] = sholatNameStr(NEXTTIMEID);
+
+    // JsonObject sholattime = root.createNestedObject("sholattime");
+    // weather["temp"] = 14.2;
+    // weather["cond"] = "cloudy";
+
+    // JsonArray coords = root.createNestedArray(sholatNameStr(i));
+    JsonArray coords = root.createNestedArray("sholattimes");
+    // JsonObject sholat2 = root.createNestedObject();
+
+    for (int i = 0; i < TimesCount; ++i)
+    {
+      JsonObject sholat2 = coords.createNestedObject();
+
+      // JsonArray coord = sholat2.createNestedArray(sholatNameStr(i));
+      // coord.add(sholat.times[i]);
+      // coord.add(sholatTimeArray[i]);
+      // coord.add(sholat.timestampSholatTimesToday[i]);
+
+      // sholat2["name"] = sholatNameStr(i);
+      // sholat2["float"] = sholat.times[i];
+      // sholat2["char"] = sholatTimeArray[i];
+      // sholat2["timestamp"] = sholat.timestampSholatTimesToday[i];
+    }
+
+    serializeJson(doc, *response);
+    request->send(response);
+  });
+
   server.on("/status/network", [](AsyncWebServerRequest *request) {
     DEBUGLOG("%s\r\n", request->url().c_str());
 
@@ -1269,16 +1308,23 @@ void AsyncWSBegin()
     root[FPSTR(pgm_time)] = getTimeStr(localTime);
     root[FPSTR(pgm_uptime)] = getUptimeStr();
     root[FPSTR(pgm_lastboot)] = getLastBootStr();
-    if (lastSync != 0)
+    root[FPSTR(pgm_internetstatus)] = FPSTR(internetstatus_P[internet]);
+    root[FPSTR(pgm_rtcstatus)] = FPSTR(rtcstatus_P[GetRtcStatus()]);
+
+    if (syncByRtcFlag)
     {
-      root[FPSTR(pgm_lastsync)] = getLastSyncStr(lastSync);
-      root[FPSTR(pgm_nextsync)] = getNextSyncStr();
+      root[FPSTR(pgm_lastsyncby)] = FPSTR(pgm_RTC);
+    }
+    else if (syncByNtpFlag)
+    {
+      root[FPSTR(pgm_lastsyncby)] = FPSTR(pgm_NTP);
     }
     else
     {
-      root[FPSTR(pgm_lastsync)] = FPSTR(pgm_never);
-      root[FPSTR(pgm_nextsync)] = getNextSyncStr();
+      root[FPSTR(pgm_lastsyncby)] = FPSTR(pgm_None);
     }
+
+    root[FPSTR(pgm_nextsync)] = getNextSyncStr();
 
     if (lastSyncByNtp)
     {
@@ -1853,6 +1899,7 @@ void send_config_time(AsyncWebServerRequest *request)
   root[FPSTR(pgm_ntpserver_1)] = _configTime.ntpserver_1;
   root[FPSTR(pgm_ntpserver_2)] = _configTime.ntpserver_2;
   root[FPSTR(pgm_syncinterval)] = _configTime.syncinterval;
+  root[FPSTR(pgm_lastsync)] = _configTime.lastsync;
 
   serializeJsonPretty(root, *response);
   request->send(response);
@@ -2632,13 +2679,13 @@ bool save_config_time()
   StaticJsonDocument<512> json;
 
   json[FPSTR(pgm_dst)] = _configTime.dst;
-  json[FPSTR(pgm_enablertc)] = _configTime.enablertc;
-  json[FPSTR(pgm_syncinterval)] = _configTime.syncinterval;
-  json[FPSTR(pgm_lastsync)] = _configTime.lastsync;
   json[FPSTR(pgm_enablentp)] = _configTime.enablentp;
   json[FPSTR(pgm_ntpserver_0)] = _configTime.ntpserver_0;
   json[FPSTR(pgm_ntpserver_1)] = _configTime.ntpserver_1;
   json[FPSTR(pgm_ntpserver_2)] = _configTime.ntpserver_2;
+  json[FPSTR(pgm_enablertc)] = _configTime.enablertc;
+  json[FPSTR(pgm_syncinterval)] = _configTime.syncinterval;
+  json[FPSTR(pgm_lastsync)] = _configTime.lastsync;
 
   //json["led"] = config.connectionLed;
 
@@ -3241,6 +3288,12 @@ void AsyncWSLoop()
       //beep
       tone1 = HIGH;
     }
+
+    if (sendDateTimeFlag)
+    {
+      sendDateTimeFlag = false;
+      sendDateTime(2);
+    }
   }
 
   if (tick3000ms)
@@ -3383,12 +3436,6 @@ void AsyncWSLoop()
     sendHeap(2);
   }
 
-  if (sendDateTimeFlag)
-  {
-    sendDateTimeFlag = false;
-    sendDateTime(2);
-  }
-
   if (setDateTimeFromGUIFlag)
   {
     setDateTimeFromGUIFlag = false;
@@ -3404,7 +3451,7 @@ void AsyncWSLoop()
 
     // lastSyncRTC = utcTimestamp;
 
-    lastSync = timestampReceivedFromWebGUI;
+    _configTime.lastsync = timestampReceivedFromWebGUI;
 
     //beep
     tone0 = HIGH;
@@ -3476,20 +3523,29 @@ void sendDateTime(uint8_t mode)
   root[FPSTR(pgm_time)] = getTimeStr(localTime);
   root[FPSTR(pgm_uptime)] = getUptimeStr();
   root[FPSTR(pgm_lastboot)] = getLastBootStr();
-  if (lastSync != 0)
+  root[FPSTR(pgm_internetstatus)] = FPSTR(internetstatus_P[internet]);
+  root[FPSTR(pgm_rtcstatus)] = FPSTR(rtcstatus_P[GetRtcStatus()]);
+
+  if (syncByRtcFlag)
   {
-    root[FPSTR(pgm_lastsync)] = getLastSyncStr(lastSync);
-    root[FPSTR(pgm_nextsync)] = getNextSyncStr();
+    root[FPSTR(pgm_lastsyncby)] = FPSTR(pgm_RTC);
+  }
+  else if (syncByNtpFlag)
+  {
+    root[FPSTR(pgm_lastsyncby)] = FPSTR(pgm_NTP);
   }
   else
   {
-    root[FPSTR(pgm_lastsync)] = FPSTR(pgm_never);
-    root[FPSTR(pgm_nextsync)] = getNextSyncStr();
+    root[FPSTR(pgm_lastsyncby)] = FPSTR(pgm_None);
   }
+
+  root[FPSTR(pgm_nextsync)] = getNextSyncStr();
 
   if (lastSyncByNtp)
   {
-    root[FPSTR(pgm_lastsyncbyntp)] = getLastSyncStr(lastSyncByNtp);
+    char temp[64];
+    strlcpy(temp, getLastSyncStr(lastSyncByNtp), sizeof(temp) / sizeof(temp[0]));
+    root[FPSTR(pgm_lastsyncbyntp)] = temp;
   }
   else
   {
@@ -3630,14 +3686,29 @@ bool save_system_info()
     dot_loc = pgm_lastIndexOf(0, the_path); // if no dot, return end of string
 
   int lenPath = strlen(the_path);
-  int lenStrFileName = (lenPath - (slash_loc + 1));
+  int lenStrFileName;
+
+  bool useFullPath = true;
+  int start_loc = 0;
+
+  if (useFullPath)
+  {
+    lenStrFileName = lenPath;
+    start_loc = 0;
+  }
+  else
+  {
+    lenStrFileName = (lenPath - (slash_loc + 1));
+    start_loc = slash_loc + 1;
+  }
 
   char strFileName[lenStrFileName + 1];
+
   //Serial.println(lenFileName);
   //Serial.println(sizeof(fileName));
 
   int j = 0;
-  for (int i = slash_loc + 1; i < lenPath; i++)
+  for (int i = start_loc; i < lenPath; i++)
   {
     uint8_t b = pgm_read_byte(&the_path[i]);
     if (b != 0)

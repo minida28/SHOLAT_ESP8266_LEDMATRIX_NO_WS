@@ -774,8 +774,7 @@
           console.log(timeStampToSend);
         }
         else if (stateButtonSyncToInternet) {
-          // timeStampToSend = "t " + timeUTC_second;
-          timeStampToSend = "t " + (Number(timeUTC_second) + 1);
+          timeStampToSend = "t " + timeUTC_second;
           ws.send(timeStampToSend);
           console.log(timeStampToSend);
         }

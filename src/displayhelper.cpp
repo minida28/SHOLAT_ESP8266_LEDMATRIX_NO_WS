@@ -116,7 +116,11 @@ void step3()
 
                 count = 0;
                 //refreshDisplay(1);
-                process_runningled_page();
+                if (timeSetOnce)
+                {
+                    process_runningled_page();
+                }
+
                 refreshDisplay(times);
             }
         }
@@ -135,7 +139,10 @@ void step3()
             }
 
             X = staticX;
-            process_runningled_page();
+            if (timeSetOnce)
+            {
+                process_runningled_page();
+            }
             refreshDisplay(times);
         }
     }
@@ -144,7 +151,11 @@ void step3()
         count = 0;
         X = 0;
         staticX = 64;
-        process_runningled_page();
+
+            if (timeSetOnce)
+            {
+                process_runningled_page();
+            }
         refreshDisplay(times);
     }
 
@@ -3523,7 +3534,7 @@ void process_runningled_page()
             matrix.setTextSize(1);
 
             const GFXfont *font;
-            
+
             // font = &F14LED7pt8b;
             // font = &digital_7__mono_12pt7b;
             // font = &FreeMono9pt7b;
@@ -3883,7 +3894,7 @@ void process_runningled_page()
                 int16_t y0_currentPage;
 
                 if (currentPage == 0)
-                {                    
+                {
                     PreparePage(strCurrentPage, &UbuntuMono_B10pt8b, &x0_currentPage, &y0_currentPage);
                 }
                 else if (currentPage == 1)
@@ -3981,7 +3992,7 @@ void process_runningled_page()
                 int16_t x0_currentPage;
                 int16_t y0_currentPage;
                 if (currentPage == 0)
-                {                    
+                {
                     PreparePage(strCurrentPage, &UbuntuMono_B10pt8b, &x0_currentPage, &y0_currentPage);
                 }
                 else if (currentPage == 1)
@@ -4077,7 +4088,7 @@ void process_runningled_page()
                         PreparePage(strNextPage, &UbuntuMono_B10pt8b, &x_center, &y_center);
                     }
                     else if (nextPage == 1)
-                    {                        
+                    {
                         PreparePage(strNextPage, &F14LED7pt8b, &x_center, &y_center);
                     }
                     else if (nextPage == 2)
@@ -4102,7 +4113,7 @@ void process_runningled_page()
                         PreparePage(strNextPage, &UbuntuMono_B10pt8b, &x_center, &y_center);
                     }
                     else if (nextPage == 1)
-                    {                        
+                    {
                         PreparePage(strNextPage, &F14LED7pt8b, &x_center, &y_center);
                     }
                     else if (nextPage == 2)
@@ -4127,7 +4138,7 @@ void process_runningled_page()
                         PreparePage(strNextPage, &UbuntuMono_B10pt8b, &x_center, &y_center);
                     }
                     else if (nextPage == 1)
-                    {                        
+                    {
                         PreparePage(strNextPage, &F14LED7pt8b, &x_center, &y_center);
                     }
                     else if (nextPage == 2)
@@ -4152,7 +4163,7 @@ void process_runningled_page()
                         PreparePage(strNextPage, &UbuntuMono_B10pt8b, &x_center, &y_center);
                     }
                     else if (nextPage == 1)
-                    {                        
+                    {
                         PreparePage(strNextPage, &F14LED7pt8b, &x_center, &y_center);
                     }
                     else if (nextPage == 2)
@@ -4177,7 +4188,7 @@ void process_runningled_page()
                         PreparePage(strNextPage, &UbuntuMono_B10pt8b, &x_center, &y_center);
                     }
                     else if (nextPage == 1)
-                    {                        
+                    {
                         PreparePage(strNextPage, &F14LED7pt8b, &x_center, &y_center);
                     }
                     else if (nextPage == 2)
@@ -4202,7 +4213,7 @@ void process_runningled_page()
                         PreparePage(strNextPage, &UbuntuMono_B10pt8b, &x_center, &y_center);
                     }
                     else if (nextPage == 1)
-                    {                        
+                    {
                         PreparePage(strNextPage, &F14LED7pt8b, &x_center, &y_center);
                     }
                     else if (nextPage == 2)
@@ -4227,7 +4238,7 @@ void process_runningled_page()
                         PreparePage(strNextPage, &UbuntuMono_B10pt8b, &x_center, &y_center);
                     }
                     else if (nextPage == 1)
-                    {                        
+                    {
                         PreparePage(strNextPage, &F14LED7pt8b, &x_center, &y_center);
                     }
                     else if (nextPage == 2)
@@ -4252,7 +4263,7 @@ void process_runningled_page()
                         PreparePage(strNextPage, &UbuntuMono_B10pt8b, &x_center, &y_center);
                     }
                     else if (nextPage == 1)
-                    {                        
+                    {
                         PreparePage(strNextPage, &F14LED7pt8b, &x_center, &y_center);
                     }
                     else if (nextPage == 2)
@@ -6093,7 +6104,7 @@ void process_runningled_page()
             // Last sync time at row 1
             // ------------------------
 
-            strcpy(str, getDateTimeStr(lastSync));
+            strcpy(str, getDateTimeStr(_configTime.lastsync));
 
             matrix.setFont(&TomThumb);
 
@@ -7228,7 +7239,7 @@ void process_runningled_page()
                                 PRINT("System time has been updated!\r\n\r\n");
 
                                 // update last sync
-                                lastSync = dt.Epoch32Time();
+                                _configTime.lastsync = dt.Epoch32Time();
 
                                 // reset to no
                                 yesNo = false;
@@ -7712,7 +7723,7 @@ void process_runningled_page()
                                 PRINT("System time has been updated!\r\n\r\n");
 
                                 // update last sync
-                                lastSync = dt.Epoch32Time();
+                                _configTime.lastsync = dt.Epoch32Time();
 
                                 // reset to no
                                 yesNo = false;

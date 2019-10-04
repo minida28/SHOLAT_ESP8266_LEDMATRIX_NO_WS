@@ -53,13 +53,21 @@ const char modelName[] PROGMEM = "ESP8266EX";
 const char modelNumber[] PROGMEM = "929000226503";
 
 //network
-const char WL_IDLE_STATUS_Str[] PROGMEM = "WL_IDLE_STATUS";
-const char WL_NO_SSID_AVAIL_Str[] PROGMEM = "WL_NO_SSID_AVAIL";
-const char WL_SCAN_COMPLETED_Str[] PROGMEM = "WL_SCAN_COMPLETED";
-const char WL_CONNECTED_Str[] PROGMEM = "WL_CONNECTED";
-const char WL_CONNECT_FAILED_Str[] PROGMEM = "WL_CONNECT_FAILED";
-const char WL_CONNECTION_LOST_Str[] PROGMEM = "WL_CONNECTION_LOST";
-const char WL_DISCONNECTED_Str[] PROGMEM = "WL_DISCONNECTED";
+// const char WL_IDLE_STATUS_Str[] PROGMEM = "WL_IDLE_STATUS";
+// const char WL_NO_SSID_AVAIL_Str[] PROGMEM = "WL_NO_SSID_AVAIL";
+// const char WL_SCAN_COMPLETED_Str[] PROGMEM = "WL_SCAN_COMPLETED";
+// const char WL_CONNECTED_Str[] PROGMEM = "WL_CONNECTED";
+// const char WL_CONNECT_FAILED_Str[] PROGMEM = "WL_CONNECT_FAILED";
+// const char WL_CONNECTION_LOST_Str[] PROGMEM = "WL_CONNECTION_LOST";
+// const char WL_DISCONNECTED_Str[] PROGMEM = "WL_DISCONNECTED";
+
+const char WL_IDLE_STATUS_Str[] PROGMEM = "Idle";
+const char WL_NO_SSID_AVAIL_Str[] PROGMEM = "SSID not available";
+const char WL_SCAN_COMPLETED_Str[] PROGMEM = "Scan Completed";
+const char WL_CONNECTED_Str[] PROGMEM = "Connected";
+const char WL_CONNECT_FAILED_Str[] PROGMEM = "Connection Failed";
+const char WL_CONNECTION_LOST_Str[] PROGMEM = "Connection Lost";
+const char WL_DISCONNECTED_Str[] PROGMEM = "Disconnected";
 
 const char *const wifistatus_P[] PROGMEM =
     {
@@ -84,6 +92,16 @@ const char *const wifimode_P[] PROGMEM =
         STA_Str,
         AP_Str,
         STA_AP_Str};
+
+const char RTC_TIME_VALID_Str[] PROGMEM = "RTC_TIME_VALID";
+const char RTC_LOST_CONFIDENT_Str[] PROGMEM = "RTC_LOST_CONFIDENT";
+const char CLOCK_NOT_RUNNING_Str[] PROGMEM = "CLOCK_NOT_RUNNING";
+
+const char *const rtcstatus_P[] PROGMEM =
+    {
+        RTC_TIME_VALID_Str,
+        RTC_LOST_CONFIDENT_Str,
+        CLOCK_NOT_RUNNING_Str};
 
 
 const char pgm_CONFIG_FILE[] PROGMEM = "/config.json";
@@ -151,6 +169,8 @@ const char pgm_WIFI_AP_STA[] PROGMEM = "WIFI_AP_STA";
 const char pgm_WIFI_OFF[] PROGMEM = "WIFI_OFF";
 const char pgm_NA[] PROGMEM = "N/A";
 
+const char pgm_RTC[] PROGMEM = "RTC";
+const char pgm_NTP[] PROGMEM = "NTP";
 const char pgm_never[] PROGMEM = "NEVER";
 const char pgm_txt_infoStatic[] PROGMEM = "infoStatic";
 const char pgm_infodynamic[] PROGMEM = "infoDynamic";
@@ -262,12 +282,14 @@ const char pgm_time[] PROGMEM = "time";
 const char pgm_date[] PROGMEM = "date";
 const char pgm_lastboot[] PROGMEM = "lastboot";
 const char pgm_lastsync[] PROGMEM = "lastsync";
+const char pgm_lastsyncby[] PROGMEM = "lastsyncby";
 const char pgm_lastsyncbyntp[] PROGMEM = "lastsyncbyntp";
 const char pgm_lastsyncbyrtc[] PROGMEM = "lastsyncbyrtc";
 const char pgm_nextsync[] PROGMEM = "nextsync";
 const char pgm_uptime[] PROGMEM = "uptime";
 const char pgm_enablentp[] PROGMEM = "enablentp";
 const char pgm_enablertc[] PROGMEM = "enablertc";
+const char pgm_rtcstatus[] PROGMEM = "rtcstatus";
 
 const char pgm_province[] PROGMEM = "province";
 const char pgm_regency[] PROGMEM = "regency";

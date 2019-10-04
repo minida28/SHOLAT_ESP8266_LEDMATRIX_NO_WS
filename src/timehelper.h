@@ -36,6 +36,14 @@
 // for testing purpose:
 extern "C" int clock_gettime(clockid_t unused, struct timespec *tp);
 
+// to be able to execute sntp_stop();
+extern "C"
+{
+#include "sntp.h"
+}
+
+extern Ticker waitingForInternetConnectedTimer;
+
 extern bool tick1000ms;
 extern bool tick3000ms;
 extern bool state500ms;
@@ -43,17 +51,20 @@ extern bool state250ms;
 extern bool state1000ms;
 
 extern bool timeSetFlag;
+extern bool timeSetOnce;
 extern bool syncTimeFromRtcFlag;
+extern bool syncByRtcFlag;
+extern bool syncByNtpFlag;
 extern bool internetAccess;
 
 extern uint32_t now;
 extern uint32_t utcTime;
 extern uint32_t localTime;
-extern uint32_t lastSync; ///< Stored time of last successful sync
 extern uint32_t lastSyncByNtp; ///< Stored time of last successful sync
 extern uint32_t lastSyncByRtc; ///< Stored time of last successful sync
 extern uint32_t _firstSync; ///< Stored time of first successful sync after boot
 extern uint32_t _lastBoot;
+extern uint32_t nextSync;
 
 extern uint16_t yearLocal;
 extern uint8_t monthLocal;
@@ -73,7 +84,7 @@ typedef struct
   char ntpserver_2[48] = "192.168.10.1";
   bool enablertc = true;
   uint32_t syncinterval = 120;
-  uint32_t lastsync = 1550077200;
+  uint32_t lastsync = 1550077200; // to store last sync so we know estimate time this unit is alive
 } strConfigTime;
 extern strConfigTime _configTime;
 
@@ -117,6 +128,8 @@ char* dayShortStr(uint8_t day);
 time_t tmConvert_t(int YYYY, byte MM, byte DD, byte hh, byte mm, byte ss);
 
 void flip250ms();
+
+void FlipWaitingForInternet();
 
 void TimeSetup();
 void TimeLoop();

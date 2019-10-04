@@ -4,9 +4,9 @@
 #include <RtcDS3231.h>      //RTC library
 #include <Wire.h>
 
-extern bool syncRtcEventTriggered; // True if a time even has been triggered
-extern bool syncSuccessByRtc;
-extern bool RTC_OK;
+// extern bool syncRtcEventTriggered; // True if a time even has been triggered
+// extern bool syncSuccessByRtc;
+extern uint8_t rtcStatus;
 
 extern float rtcTemperature;
 

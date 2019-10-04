@@ -1,6 +1,6 @@
 {
     "name": "Adafruit GFX Library", 
-    "version": "1.5.6", 
+    "version": "1.5.7", 
     "keywords": [
         "display"
     ], 
@@ -13,6 +13,7 @@
         "atmelsam", 
         "espressif32", 
         "espressif8266", 
+        "gd32v", 
         "infineonxmc", 
         "intel_arc32", 
         "kendryte210", 

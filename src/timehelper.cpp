@@ -4,7 +4,8 @@
 #include "asyncserver.h"
 #include "timehelper.h"
 #include "rtchelper.h"
-#include "EspGoodies.h"
+// #include "EspGoodies.h"
+#include "asyncpinghelper.h"
 
 #define PRINTPORT Serial
 #define DEBUGPORT Serial
@@ -40,6 +41,7 @@ bool tick3000ms = false;
 bool state500ms = false;
 bool state1000ms = false;
 bool state250ms = false;
+bool waitingForInternet = true;
 
 uint32_t now_ms, now_us;
 timeval tv;
@@ -47,6 +49,7 @@ timespec tp;
 timeval cbtime; // time set in callback
 
 bool timeSetFlag = false;
+bool timeSetOnce = false;
 bool syncTimeFromRtcFlag = false;
 bool syncByRtcFlag = false;
 bool syncByNtpFlag = false;
@@ -57,11 +60,13 @@ uint32_t now;
 uint32_t localTime;
 uint32_t utcTime;
 uint32_t uptime;
-uint32_t lastSync;          ///< Stored time of last successful sync
+// uint32_t lastSync;          ///< Stored time of last successful sync
 uint32_t lastSyncByNtp = 0; ///< Stored time of last successful sync
 uint32_t lastSyncByRtc = 0; ///< Stored time of last successful sync
 uint32_t _firstSync;        ///< Stored time of first successful sync after boot
 uint32_t _lastBoot;
+uint32_t nextSync;
+;
 
 uint16_t yearLocal;
 uint8_t monthLocal;
@@ -78,6 +83,7 @@ uint16_t longSyncInterval;  ///< Interval to set periodic time sync
 Ticker state250msTimer;
 Ticker state500msTimer;
 Ticker syncTimeFromRtcTicker;
+Ticker waitingForInternetConnectedTimer;
 
 strConfigTime _configTime;
 strTimeSource timeSource;
@@ -271,9 +277,31 @@ char *getNextSyncStr()
 {
   // format: 365000 days 23:47:22
 
-  time_t _syncInterval = 3601;
+  // // time_t _syncInterval = 3601;
+  // uint32_t _syncInterval = _configTime.syncinterval;
 
-  time_t diff = (lastSync + _syncInterval) - now;
+  // time_t diff = (lastSync + _syncInterval) - now;
+
+  // uint16_t days;
+  // uint8_t hours;
+  // uint8_t minutes;
+  // uint8_t seconds;
+
+  // days = elapsedDays(diff);
+  // hours = numberOfHours(diff);
+  // minutes = numberOfMinutes(diff);
+  // seconds = numberOfSeconds(diff);
+
+  // static char buf[21];
+  // snprintf(buf, sizeof(buf), "%d days %02d:%02d:%02d", days, hours, minutes, seconds);
+
+  // return buf;
+
+  // unsigned long nextsync;
+
+  // nextsync = (_configTime.lastsync + _configTime.syncinterval) - utcTime;
+
+  time_t diff = nextSync - now;
 
   uint16_t days;
   uint8_t hours;
@@ -285,8 +313,9 @@ char *getNextSyncStr()
   minutes = numberOfMinutes(diff);
   seconds = numberOfSeconds(diff);
 
-  static char buf[21];
-  snprintf(buf, sizeof(buf), "%d days %02d:%02d:%02d", days, hours, minutes, seconds);
+  static char buf[30];
+  snprintf_P(buf, sizeof(buf), PSTR("%d days %02d:%02d:%02d"), days, hours, minutes, seconds);
+  // snprintf_P(buf, sizeof(buf), PSTR("xx days %02d:%02d:%02d"), hours, minutes, seconds);
 
   return buf;
 }
@@ -310,6 +339,11 @@ char *GetRtcDateTimeStr(const RtcDateTime &dt)
              dt.Year());
 
   return buf;
+}
+
+void FlipWaitingForInternet()
+{
+  waitingForInternet = false;
 }
 
 void FlipState250ms()
@@ -348,24 +382,76 @@ void printTm(const char *what, const tm *tm)
 
 void time_is_set()
 {
-  gettimeofday(&cbtime, NULL);
-  // SetRtcTime(time(nullptr));
+  if (waitingForInternetConnectedTimer.active())
+    waitingForInternetConnectedTimer.detach();
+
   timeSetFlag = true;
+  timeSetOnce = true;
   y2k38mode = false;
+
+  gettimeofday(&cbtime, NULL);
+
+  DEBUGLOG("time(nullptr): %u, (uint32_t)tv.tv_sec: %u\r\n\r\n", time(nullptr), (uint32_t)cbtime.tv_sec);
+
+  // gettimeofday(&tv, nullptr);
+  clock_gettime(0, &tp);
+
+  now = time(nullptr);
+
+  if (time(nullptr) < 0)
+  {
+    y2k38mode = true;
+  }
+
+  localTime = now + TimezoneSeconds();
+  uptime = tp.tv_sec;
+  now_ms = millis();
+  now_us = micros();
+
+  RtcDateTime dt;
+  dt.InitWithEpoch32Time(localTime);
+  yearLocal = dt.Year();
+  monthLocal = dt.Month();
+  mdayLocal = dt.Day();
+  wdayLocal = dt.DayOfWeek();
+  hourLocal = dt.Hour();
+  minLocal = dt.Minute();
+  secLocal = dt.Second();
+
+  utcTime = localTime - TimezoneSeconds();
+
+  // clock_gettime(0, &tp);
+
+  // now = time(nullptr);
+  // DEBUGLOG("time(nullptr): %u, (uint32_t)tv.tv_sec: %u\r\n\r\n", time(nullptr), (uint32_t)tv.tv_sec);
+
+  // uint32_t t = time(nullptr);
+
+  // nextSync = t + _configTime.syncinterval;
+
+  _configTime.lastsync = utcTime;
+
+  save_config_time();
+
   if (syncByRtcFlag)
   {
-    syncByRtcFlag = false;
     PRINT("\r\n------------------ settimeofday() was called by Rtc ------------------\r\n\r\n");
+    syncByRtcFlag = true;
+    syncByNtpFlag = false;
+    lastSyncByRtc = utcTime;
+    nextSync = utcTime + _configTime.syncinterval;
   }
   else
   {
-    syncByNtpFlag = true;
     PRINT("\r\n------------------ settimeofday() was called By Ntp ------------------\r\n\r\n");
-  }
+    syncByNtpFlag = true;
+    syncByRtcFlag = false;
+    lastSyncByNtp = utcTime;
 
-  clock_gettime(0, &tp);
-  // now = time(nullptr);
-  DEBUGLOG("time(nullptr): %u, (uint32_t)tv.tv_sec: %u\r\n\r\n", time(nullptr), (uint32_t)tv.tv_sec);
+    Rtc.SetDateTime(utcTime);
+
+    nextSync = utcTime + 3600;
+  }
 }
 
 void TimeSetup()
@@ -410,67 +496,93 @@ void TimeSetup()
 
 void TimeLoop()
 {
-  // if (_configTime.enablertc && (!internetAccess || lastSyncByNtp == 0 || WiFi.status() != WL_CONNECTED || !_configTime.enablentp))
-  // {
-  //   static uint32_t lastSyncByRtc_old = 0;
 
-  //   if (millis() - lastSyncByRtc_old > _configTime.syncinterval * 1000)
-  //   {
-  //     lastSyncByRtc_old = millis();
+  static bool ntpEnabled = _configTime.enablentp;
 
-  //     uint32_t rtc = get_time_from_rtc();
-  //     if (rtc > _configTime.lastsync)
-  //     {
-  //       syncByRtcFlag = true;
-
-  //       lastSyncByRtc = rtc;
-  //       _configTime.lastsync = rtc;
-  //       save_config_time();
-
-  //       timeval tv = {rtc, 0};
-  //       timezone tz = {0, 0};
-  //       settimeofday(&tv, &tz);
-  //     }
-  //     else
-  //     {
-  //       // timestamp error
-  //     }
-  //   }
-  // }
-
-  if (lastSyncByNtp == 0 && !syncTimeFromRtcTicker.active())
+  if (_configTime.enablentp != ntpEnabled)
   {
-    syncTimeFromRtcTicker.once(15, RaiseSyncTimeFromRtcFlag);
-  }
-  else if (utcTime - lastSyncByNtp >= 3660) // 1 hour + 1 minute
-  {
-    if (!syncTimeFromRtcTicker.active())
+    ntpEnabled = _configTime.enablentp;
+
+    if (ntpEnabled)
     {
-      syncTimeFromRtcTicker.once(120, RaiseSyncTimeFromRtcFlag);
+      configTime(0, 0, _configTime.ntpserver_0, _configTime.ntpserver_1, _configTime.ntpserver_2);
+      nextSync = utcTime + 3600;
+    }
+    else
+    {
+      sntp_stop();
+      nextSync = utcTime + _configTime.syncinterval;
+    }    
+  }
+  
+  if (_configTime.enablentp || _configTime.enablertc)
+  {
+    if (now >= nextSync)
+    {
+      if (_configTime.enablentp)
+      {
+        if (WiFi.getMode() == WIFI_STA)
+        {
+          if (WiFi.localIP())
+          {
+            if (!internet)
+            {
+              if (!waitingForInternet)
+              {
+                syncTimeFromRtcFlag = true;
+              }
+            }
+          }
+          else
+          {
+            if (!waitingForInternet)
+            {
+              syncTimeFromRtcFlag = true;
+            }
+          }
+        }
+      }
+      else if (_configTime.enablertc)
+      {
+        syncTimeFromRtcFlag = true;
+      }
     }
   }
+  else
+  {
+    // error
+    // no valid time source available
+  }
+  
 
   if (syncTimeFromRtcFlag)
   {
     syncTimeFromRtcFlag = false;
 
-    uint32_t rtc = get_time_from_rtc();
+    rtcStatus = GetRtcStatus();
 
-    if (rtc > _configTime.lastsync)
-    {      
-      syncByRtcFlag = true;
-      lastSyncByRtc = rtc;
-      _configTime.lastsync = rtc;
-      save_config_time();
+    if (rtcStatus == RTC_TIME_VALID)
+    {
+      uint32_t rtc = get_time_from_rtc();
 
-      timeval tv = {rtc, 0};
-      timezone tz = {0, 0};
-      settimeofday(&tv, &tz);
+      if (rtc > _configTime.lastsync)
+      {
+        syncByRtcFlag = true; // flag to indicate that time was synced using Rtc
+
+        timeval tv = {rtc, 0};
+        timezone tz = {0, 0};
+        settimeofday(&tv, &tz);
+      }
+      else
+      {
+        // something has gone wrong
+        nextSync = nextSync + 20; // fast sync if error; better display it in led matrix
+      }
     }
     else
     {
-      // timestamp error
-      syncTimeFromRtcTicker.once(60, RaiseSyncTimeFromRtcFlag);
+      // rtc error
+      // do not display time
     }
   }
 
@@ -501,13 +613,13 @@ void TimeLoop()
 
   utcTime = localTime - TimezoneSeconds();
 
-  if (syncByNtpFlag)
-  {
-    syncByNtpFlag = false;
-    lastSyncByNtp = utcTime;
+  // if (syncByNtpFlag)
+  // {
+  //   syncByNtpFlag = false;
+  //   lastSyncByNtp = utcTime;
 
-    syncTimeFromRtcTicker.detach();
-  }
+  //   syncTimeFromRtcTicker.detach();
+  // }
 
   // localtime / gmtime every second change
   static uint32_t lastv = 0;

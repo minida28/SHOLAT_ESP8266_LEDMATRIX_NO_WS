@@ -83,6 +83,8 @@ extern bool stationConnectedFlag;
 extern bool stationDisconnectedFlag;
 
 extern bool configFileLocationUpdated;
+extern bool configFileTimeUpdated;
+
 
 extern bool clientVisitConfigMqttPage;
 

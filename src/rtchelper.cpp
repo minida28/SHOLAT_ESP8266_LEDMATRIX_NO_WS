@@ -32,9 +32,9 @@
 
 RtcDS3231<TwoWire> Rtc(Wire);
 
-bool syncRtcEventTriggered; // True if a time even has been triggered
-bool syncSuccessByRtc;
-bool RTC_OK;
+// bool syncRtcEventTriggered; // True if a time even has been triggered
+// bool syncSuccessByRtc;
+uint8_t rtcStatus = -1;
 
 float rtcTemperature;
 
@@ -46,26 +46,6 @@ float GetRtcTemp()
 
   RtcTemperature temp = Rtc.GetTemperature();
   return temp.AsFloatDegC();
-}
-
-char *GetRtcStatusString()
-{
-  DEBUGLOG("%s\r\n", __PRETTY_FUNCTION__);
-  byte currentRtcStatus = GetRtcStatus();
-
-  if (currentRtcStatus == RTC_TIME_VALID)
-  {
-    strcpy_P(bufCommonRtc, PSTR("RTC_TIME_VALID"));
-  }
-  else if (currentRtcStatus == RTC_LOST_CONFIDENT)
-  {
-    strcpy_P(bufCommonRtc, PSTR("RTC_LOST_CONFIDENT"));
-  }
-  else if (currentRtcStatus == CLOCK_NOT_RUNNING)
-  {
-    strcpy_P(bufCommonRtc, PSTR("CLOCK_NOT_RUNNING"));
-  }
-  return bufCommonRtc;
 }
 
 uint8_t GetRtcStatus()
@@ -120,15 +100,9 @@ void SetRtcTime(uint32_t moment)
 uint32_t get_time_from_rtc()
 {
   DEBUGLOG("%s\r\n", __PRETTY_FUNCTION__);
-  syncRtcEventTriggered = true;
-
-  if (GetRtcStatus() == RTC_TIME_VALID)
-  {
-    syncSuccessByRtc = true;
-  }
 
   RtcDateTime dt = Rtc.GetDateTime();
-
+  
   uint32_t t = dt.Epoch32Time();
 
   return t; // return 0 if unable to get the time

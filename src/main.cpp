@@ -40,15 +40,15 @@
 #include "pinouthelper.h"
 #include "ioexpanderhelper.h"
 #include "PingAlive.h"
-
+#include "asyncpinghelper.h"
 
 #define PRINTPORT Serial
 
-#define PRINT(fmt, ...)                          \
-    {                                            \
-        static const char pfmt[] PROGMEM = fmt;  \
-        PRINTPORT.printf_P(pfmt, ##__VA_ARGS__); \
-    }
+#define PRINT(fmt, ...)                      \
+  {                                          \
+    static const char pfmt[] PROGMEM = fmt;  \
+    PRINTPORT.printf_P(pfmt, ##__VA_ARGS__); \
+  }
 
 #define DEBUGPORT Serial
 
@@ -191,6 +191,8 @@ void setup()
   matrix.setCursor(1, 6);
   matrix.print(FPSTR(pgm_startingup));
 
+  // return;
+
   BuzzerSetup();
 
   Serial.println(F("Mounting FS..."));
@@ -204,7 +206,9 @@ void setup()
 
   AsyncWSBegin();
 
-  DEBUGLOGLN("IP number assigned by DHCP is %s", WiFi.localIP().toString().c_str());
+  PingSetup();
+
+  // DEBUGLOGLN("IP number assigned by DHCP is %s", WiFi.localIP().toString().c_str());
 
   // // -------------------------------------------------------------------
   // // Setup I2C stuffs
@@ -248,30 +252,41 @@ void setup()
 
   tickerRefreshDisplay.detach();
 
+  waitingForInternetConnectedTimer.once(30, FlipWaitingForInternet);
+
+  nextSync = 30;
+
   Serial.println(F("Setup completed\r\n"));
 }
 
-void pingFault(void) {
+void pingFault(void)
+{
   PRINT("\r\n\r\n*** PING FAILED, %s ***\r\n\r\n", getDateTimeStr(localTime));
   // internetAccess = false;
 }
 
-void loop()
+void MainLoop()
 {
   static bool beginPingAlive = true;
   if (WiFi.status() == WL_CONNECTED && beginPingAlive)
   {
+    // IPAddress google_dns = IPAddress(8, 8, 8, 8);
+
     // startPingAlive();
-    startPingAlive((uint32_t)0x08080808UL); // google
+    // startPingAlive((uint32_t)google_dns); // google
+
+    // PingSetup();
+
     beginPingAlive = false;
+    PRINT("\r\n*** startPingAlive ***\r\n\r\n");
   }
 
   if (locationStructUpdated)
   {
     PRINT("\r\n*** Struct LOCATION Updated ***\r\n\r\n")
-    
+
     save_config_location();
-    
+
     setenv("TZ", _configLocation.timezonestring, 1 /*overwrite*/);
     tzset();
 
@@ -286,9 +301,9 @@ void loop()
   if (configFileLocationUpdated)
   {
     PRINT("\r\n*** Config file LOCATION Updated ***\r\n\r\n")
-    
+
     load_config_location();
-    
+
     setenv("TZ", _configLocation.timezonestring, 1 /*overwrite*/);
     tzset();
 
@@ -298,6 +313,22 @@ void loop()
     process_sholat_2nd_stage();
 
     configFileLocationUpdated = false;
+  }
+
+  if (configFileTimeUpdated)
+  {
+    PRINT("\r\n*** Config file LOCATION Updated ***\r\n\r\n");
+
+    configFileTimeUpdated = false;
+
+    load_config_time();
+
+    nextSync = _configTime.lastsync + _configTime.syncinterval;
+
+    TimeLoop();
+
+    process_sholat();
+    process_sholat_2nd_stage();
   }
 
   TimeLoop();
@@ -379,7 +410,7 @@ void loop()
   {
     timeSetFlag = false;
 
-    lastSync = utcTime;
+    _configTime.lastsync = utcTime;
     process_sholat();
     process_sholat_2nd_stage();
   }
@@ -414,4 +445,36 @@ void loop()
   tick1000ms = false;
   tick3000ms = false;
   // timeSetFlag = false;
+}
+
+void loop()
+{
+  // DisplayLoop();
+
+  MainLoop();
+
+  if (!timeSetOnce)
+  {
+    // MainLoop();
+
+    matrix.clearDisplay();
+    matrix.setCursor(0, 6);
+
+    if (WiFi.status() == WL_CONNECTED)
+    {
+      matrix.print(F(" WiFi Connected!\n IP: "));
+      matrix.print(WiFi.localIP());
+    }
+    else
+    {
+      matrix.print(F(" wifi status\n "));
+      matrix.print(FPSTR(wifistatus_P[WiFi.status()]));
+    }
+  }
+  // else
+  // {
+  //   TimeLoop();
+
+
+  // }
 }

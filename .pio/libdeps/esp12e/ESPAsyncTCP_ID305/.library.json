@@ -1,32 +1,32 @@
 {
+    "license": "LGPL-3.0", 
     "name": "ESPAsyncTCP", 
-    "description": "Asynchronous TCP Library for ESP8266", 
+    "repository": {
+        "url": "https://github.com/me-no-dev/ESPAsyncTCP.git", 
+        "type": "git"
+    }, 
+    "platforms": [
+        "espressif8266"
+    ], 
+    "frameworks": [
+        "arduino"
+    ], 
+    "version": "1.2.1", 
+    "build": {
+        "libCompatMode": 2
+    }, 
+    "authors": [
+        {
+            "url": null, 
+            "maintainer": true, 
+            "email": null, 
+            "name": "Hristo Gochkov"
+        }
+    ], 
     "keywords": [
         "async", 
         "tcp"
     ], 
-    "authors": [
-        {
-            "email": null, 
-            "url": null, 
-            "maintainer": true, 
-            "name": "Hristo Gochkov"
-        }
-    ], 
-    "repository": {
-        "type": "git", 
-        "url": "https://github.com/me-no-dev/ESPAsyncTCP.git"
-    }, 
-    "version": "1.2.0", 
-    "license": "LGPL-3.0", 
-    "frameworks": [
-        "arduino"
-    ], 
-    "platforms": [
-        "espressif8266"
-    ], 
-    "build": {
-        "libCompatMode": 2
-    }, 
-    "id": 305
+    "id": 305, 
+    "description": "Asynchronous TCP Library for ESP8266"
 }
