@@ -34,7 +34,7 @@ void setup() {
   Serial.println("pingAlive demo");
 
   WiFi.mode(WIFI_STA);
-  WiFi.setSleepMode(WIFI_MODEM_SLEEP, 10); // remove ",10" for older cores
+  // WiFi.setSleepMode(WIFI_MODEM_SLEEP, 10); // remove ",10" for older cores
   WiFi.begin(SSID, PSK);
   Serial.println("Connecting to " SSID);
   while (WiFi.status() != WL_CONNECTED)

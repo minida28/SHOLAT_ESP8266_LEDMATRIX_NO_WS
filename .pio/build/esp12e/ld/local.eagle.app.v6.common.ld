@@ -158,6 +158,8 @@ SECTIONS
     *libwpa2.a:(.literal.* .text.*)
     *libwps.a:(.literal.* .text.*)
     *(.irom0.literal .irom.literal .irom.text.literal .irom0.text .irom0.text.* .irom.text .irom.text.*)
+    /* Constant strings in flash (PSTRs) */
+    *(.irom0.pstr.*)
     /* __FUNCTION__ locals */
     *(.rodata._ZZ*__FUNCTION__)
     *(.rodata._ZZ*__PRETTY_FUNCTION__)

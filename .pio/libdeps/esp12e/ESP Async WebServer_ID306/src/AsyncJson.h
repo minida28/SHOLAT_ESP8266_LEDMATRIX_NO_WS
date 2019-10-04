@@ -101,7 +101,7 @@ class AsyncJsonResponse: public AsyncAbstractResponse {
         _root = _jsonBuffer.createObject();
     }
 #else
-    AsyncJsonResponse(size_t maxJsonBufferSize = DYNAMIC_JSON_DOCUMENT_SIZE, bool isArray=false) : _jsonBuffer(maxJsonBufferSize), _isValid{false} {
+    AsyncJsonResponse(bool isArray=false, size_t maxJsonBufferSize = DYNAMIC_JSON_DOCUMENT_SIZE) : _jsonBuffer(maxJsonBufferSize), _isValid{false} {
       _code = 200;
       _contentType = JSON_MIMETYPE;
       if(isArray)
@@ -142,17 +142,27 @@ class AsyncJsonResponse: public AsyncAbstractResponse {
 
 class PrettyAsyncJsonResponse: public AsyncJsonResponse {	
 public:
-	PrettyAsyncJsonResponse (bool isArray=false) : AsyncJsonResponse{isArray} {}	
+#ifdef ARDUINOJSON_5_COMPATIBILITY
+	PrettyAsyncJsonResponse (bool isArray=false) : AsyncJsonResponse{isArray} {}
+#else
+	PrettyAsyncJsonResponse (bool isArray=false, size_t maxJsonBufferSize = DYNAMIC_JSON_DOCUMENT_SIZE) : AsyncJsonResponse{isArray, maxJsonBufferSize} {}
+#endif
 	size_t setLength () {
-		// _contentLength = _root.measurePrettyLength ();
-    _contentLength = measureJsonPretty (_root);
+#ifdef ARDUINOJSON_5_COMPATIBILITY
+		_contentLength = _root.measurePrettyLength ();
+#else
+		_contentLength = measureJsonPretty(_root);
+#endif
 		if (_contentLength) {_isValid = true;}
 		return _contentLength;
 	}
 	size_t _fillBuffer (uint8_t *data, size_t len) {
 		ChunkPrint dest (data, _sentLength, len);
-		// _root.prettyPrintTo (dest);
-    serializeJsonPretty(_root, dest);
+#ifdef ARDUINOJSON_5_COMPATIBILITY
+		_root.prettyPrintTo (dest);
+#else
+		serializeJsonPretty(_root, dest);
+#endif
 		return len;
 	}
 };

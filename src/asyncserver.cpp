@@ -56,7 +56,7 @@ uint32_t _updateSize = 0;
 
 uint32_t timestampReceivedFromWebGUI = 0;
 
-bool autoConnect = false;
+bool autoConnect = true;
 bool autoReconnect = true;
 
 bool eventsourceTriggered = false;
@@ -476,7 +476,7 @@ void AsyncWSBegin()
       WiFi.config(static_ip, gateway, netmask, dns0, dns1);
       WiFi.hostname(_config.hostname);
       WiFi.begin(_config.ssid, _config.password);
-      // WiFi.waitForConnectResult();
+      WiFi.waitForConnectResult();
     }
     else
     {
@@ -484,7 +484,7 @@ void AsyncWSBegin()
       // WiFi.mode(WIFI_OFF);
       WiFi.hostname(_config.hostname);
       WiFi.begin(_config.ssid, _config.password);
-      // WiFi.waitForConnectResult();
+      WiFi.waitForConnectResult();
     }
   }
 
@@ -1239,10 +1239,10 @@ void AsyncWSBegin()
       // coord.add(sholatTimeArray[i]);
       // coord.add(sholat.timestampSholatTimesToday[i]);
 
-      // sholat2["name"] = sholatNameStr(i);
-      // sholat2["float"] = sholat.times[i];
-      // sholat2["char"] = sholatTimeArray[i];
-      // sholat2["timestamp"] = sholat.timestampSholatTimesToday[i];
+      sholat2["name"] = sholatNameStr(i);
+      sholat2["float"] = sholat.times[i];
+      sholat2["char"] = sholatTimeArray[i];
+      sholat2["timestamp"] = sholat.timestampSholatTimesToday[i];
     }
 
     serializeJson(doc, *response);
@@ -3253,7 +3253,7 @@ void AsyncWSLoop()
           WiFi.config(static_ip, gateway, netmask, dns0, dns1);
           WiFi.hostname(_config.hostname);
           WiFi.begin(_config.ssid, _config.password);
-          // WiFi.waitForConnectResult();
+          WiFi.waitForConnectResult();
         }
         else
         {
@@ -3264,7 +3264,7 @@ void AsyncWSLoop()
             WiFi.config(zeroIp, zeroIp, zeroIp);
             WiFi.hostname(_config.hostname);
             WiFi.begin(_config.ssid, _config.password);
-            // WiFi.waitForConnectResult();
+            WiFi.waitForConnectResult();
           }
         }
       }
@@ -3280,7 +3280,7 @@ void AsyncWSLoop()
             WiFi.config(zeroIp, zeroIp, zeroIp);
             WiFi.hostname(_config.hostname);
             WiFi.begin(_config.ssid, _config.password);
-            // WiFi.waitForConnectResult();
+            WiFi.waitForConnectResult();
           }
         }
       }
@@ -3305,8 +3305,8 @@ void AsyncWSLoop()
     wifiGotIpFlag = false;
 
     WiFi.setAutoConnect(autoConnect);
-    // WiFi.setAutoReconnect(autoReconnect);
-    WiFi.setAutoReconnect(true);
+    WiFi.setAutoReconnect(autoReconnect);
+    // WiFi.setAutoReconnect(true);
 
     uint8_t mode = WiFi.getMode();
     if (mode == WIFI_AP)
