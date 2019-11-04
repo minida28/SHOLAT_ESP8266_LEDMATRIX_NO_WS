@@ -432,15 +432,19 @@ void AsyncWSBegin()
   // WiFi.persistent(true);
   // WiFi.mode(WIFI_OFF);
 
-  // bool autoConnect = false;
-  // WiFi.setAutoConnect(autoConnect);
+  DEBUGLOG("WiFi.getListenInterval(): %d\r\n", WiFi.getListenInterval());
+  DEBUGLOG("WiFi.isSleepLevelMax(): %d\r\n", WiFi.isSleepLevelMax());
 
-  // bool autoReconnect = true;
-  // WiFi.setAutoReconnect(autoReconnect);
+  WiFi.setSleepMode(WIFI_NONE_SLEEP);
+  // WiFi.setSleepMode(WIFI_LIGHT_SLEEP);
+  // WiFi.setSleepMode(WIFI_MODEM_SLEEP);
+
+  DEBUGLOG("WiFi.getListenInterval(): %d\r\n", WiFi.getListenInterval());
+  DEBUGLOG("WiFi.isSleepLevelMax(): %d\r\n", WiFi.isSleepLevelMax());
 
   WiFi.hostname(_config.hostname);
 
-  WiFi.mode(WIFI_OFF);
+  // WiFi.mode(WIFI_OFF); //=========== TESTING, ORIGINAL-NYA WIFI DIMATIKAN DULU
 
   WiFi.setAutoConnect(autoConnect);
   WiFi.setAutoReconnect(autoReconnect);
@@ -480,43 +484,150 @@ void AsyncWSBegin()
     }
     else
     {
-      PRINT("Starting wifi in WIFI_STA mode.\r\n");
-      // WiFi.mode(WIFI_OFF);
-      WiFi.hostname(_config.hostname);
-      WiFi.begin(_config.ssid, _config.password);
-      WiFi.waitForConnectResult();
+      DEBUGLOG("Starting wifi in WIFI_STA mode.\r\n");
+
+      if (WiFi.getAutoReconnect())
+      {
+        if (WiFi.waitForConnectResult(10000) == -1) // hit timeout
+        {
+          DEBUGLOG("Wifi connect timeout. Re-starting connection...\r\n");
+          WiFi.mode(WIFI_OFF);
+          WiFi.hostname(_config.hostname);
+          WiFi.begin(_config.ssid, _config.password);
+          WiFi.waitForConnectResult();
+        }
+      }
     }
   }
 
   dnsServer.start(53, "*", WiFi.softAPIP());
 
-  // MDNS.addService("http", "tcp", 80);
+  DEBUGLOG("Starting mDNS responder...\r\n");
+  // if (!MDNS.begin(_config.hostname))
+  if (!MDNS.begin("esp8266"))
+  { // Start the mDNS responder for esp8266.local
+    DEBUGLOG("Error setting up mDNS responder!\r\n");
+  }
+  else
+  {
+    DEBUGLOG("mDNS responder started\r\n");
+    // MDNS.addService("http", "tcp", 80);
+  }
 
   ArduinoOTA.setHostname(_config.hostname);
   ArduinoOTA.begin();
 
   NBNS.begin(_config.hostname);
 
-  DEBUGLOG("Starting SSDP...\r\n");
-  SSDP.setSchemaURL(FPSTR(pgm_descriptionxml));
-  SSDP.setHTTPPort(80);
-  SSDP.setDeviceType(FPSTR(pgm_upnprootdevice));
-  //  SSDP.setModelName(_config.deviceName.c_str());
-  //  SSDP.setModelNumber(FPSTR(modelNumber));
-  SSDP.begin();
+  if (1)
+  {
+    DEBUGLOG("Starting SSDP...\r\n");
+    SSDP.setSchemaURL("description.xml");
+    SSDP.setHTTPPort(80);
+    SSDP.setDeviceType("upnp:rootdevice");
+    // SSDP.setModelName(ssdp_modelName);
+    // SSDP.setModelNumber(ssdp_modelNumber);
 
-  // // SSDP.setSchemaURL("description.xml");
-  // SSDP.setSchemaURL(FPSTR(pgm_descriptionxml));
-  // SSDP.setHTTPPort(80);
-  // SSDP.setName("Philips hue clone");
-  // SSDP.setSerialNumber("001788102201");
-  // SSDP.setURL("index.html");
-  // SSDP.setModelName("Philips hue bridge 2012");
-  // SSDP.setModelNumber("929000226503");
-  // SSDP.setModelURL("http://www.meethue.com");
-  // SSDP.setManufacturer("Royal Philips Electronics");
-  // SSDP.setManufacturerURL("http://www.philips.com");
-  // SSDP.begin();
+    // SSDP.setSchemaURL(FPSTR(pgm_descriptionxml));
+    // SSDP.setHTTPPort(80);
+    // SSDP.setDeviceType(FPSTR(pgm_upnprootdevice));
+    //  SSDP.setModelName(_config.deviceName.c_str());
+    //  SSDP.setModelNumber(FPSTR(modelNumber));
+    SSDP.begin();
+
+    server.on("/description.xml", HTTP_GET, [](AsyncWebServerRequest *request) {
+      DEBUGLOG("%s\r\n", __PRETTY_FUNCTION__);
+
+      File file = SPIFFS.open(FPSTR(pgm_descriptionxmlfile), "r");
+      if (!file)
+      {
+        PRINT("Failed to open %s file\r\n", file.name());
+        file.close();
+        return;
+      }
+
+      size_t size = file.size();
+      DEBUGLOG("%s file size: %d bytes\r\n", file.name(), size);
+
+      // size_t allocatedSize = 1024;
+      // if (size > allocatedSize)
+      // {
+      //   PRINT("WARNING, %s file size %d bytes is larger than allocatedSize %d bytes. Exiting...\r\n", file.name(), size, allocatedSize);
+      //   file.close();
+      //   return;
+      // }
+
+      // Allocate a buffer to store contents of the file
+      char buf[size + 1];
+
+      //copy file to buffer
+      file.readBytes(buf, size);
+
+      //add termination character at the end
+      buf[size] = '\0';
+
+      //close the file, save your memory, keep healthy :-)
+      file.close();
+
+      // DEBUGLOG("%s\r\n", buf);
+
+      size_t lenBuf = size;
+      DEBUGLOG("Template size: %d bytes\r\n", lenBuf);
+
+      //convert IP address to char array
+      size_t len = strlen(WiFi.localIP().toString().c_str());
+      char URLBase[len + 1];
+      strlcpy(URLBase, WiFi.localIP().toString().c_str(), sizeof(URLBase));
+
+      lenBuf = lenBuf + strlen(URLBase);
+
+      // const char *friendlyName = WiFi.hostname().toString().c_str();
+      len = strlen(WiFi.hostname().c_str());
+      char friendlyName[len + 1];
+      strlcpy(friendlyName, WiFi.hostname().c_str(), sizeof(friendlyName));
+
+      lenBuf = lenBuf + strlen(friendlyName);
+
+      char presentationURL[] = "/";
+
+      lenBuf = lenBuf + strlen(presentationURL);
+
+      uint32_t serialNumber = ESP.getChipId();
+
+      lenBuf = lenBuf + strlen(friendlyName);
+
+      char modelName[] = "ESP8266EX";
+
+      lenBuf = lenBuf + strlen(modelName);
+      const char *modelNumber = friendlyName;
+
+      lenBuf = lenBuf + strlen(modelNumber);
+
+      lenBuf = lenBuf + 6;
+      DEBUGLOG("Allocated size: %d bytes\r\n", lenBuf);
+
+      StreamString output;
+
+      if (output.reserve(lenBuf))
+      {
+        output.printf(buf,
+                      URLBase,
+                      friendlyName,
+                      presentationURL,
+                      serialNumber,
+                      modelName,
+                      modelNumber, //modelNumber
+                      (uint8_t)((serialNumber >> 16) & 0xff),
+                      (uint8_t)((serialNumber >> 8) & 0xff),
+                      (uint8_t)serialNumber & 0xff);
+        request->send(200, "text/xml", output);
+      }
+      else
+      {
+        request->send(500);
+      }
+    });
+  }
 
   //SPIFFS.begin();
 
@@ -551,79 +662,6 @@ void AsyncWSBegin()
   //   DEBUGLOG("%s\r\n", __PRETTY_FUNCTION__);
   //   // SSDP.schema(HTTP.client());
   // });
-
-  server.on("/description.xml", HTTP_GET, [](AsyncWebServerRequest *request) {
-    DEBUGLOG("%s\r\n", __PRETTY_FUNCTION__);
-
-    File file = SPIFFS.open(FPSTR(pgm_descriptionxmlfile), "r");
-    if (!file)
-    {
-      PRINT("Failed to open %s file\r\n", file.name());
-      file.close();
-      return;
-    }
-
-    size_t size = file.size();
-    DEBUGLOG("%s file size: %d bytes\r\n", file.name(), size);
-
-    size_t allocatedSize = 1024;
-    if (size > allocatedSize)
-    {
-      PRINT("WARNING, %s file size %d bytes is larger than allocatedSize %d bytes. Exiting...\r\n", file.name(), size, allocatedSize);
-      file.close();
-      return;
-    }
-
-    // Allocate a buffer to store contents of the file
-    char buf[size + 1];
-
-    //copy file to buffer
-    file.readBytes(buf, size);
-
-    //add termination character at the end
-    buf[size] = '\0';
-
-    //close the file, save your memory, keep healthy :-)
-    file.close();
-
-    // DEBUGLOG("%s\r\n", buf);
-
-    StreamString output;
-
-    if (output.reserve(allocatedSize))
-    {
-      //convert IP address to char array
-      size_t len = strlen(WiFi.localIP().toString().c_str());
-      char URLBase[len + 1];
-      strlcpy(URLBase, WiFi.localIP().toString().c_str(), sizeof(URLBase));
-
-      // const char *friendlyName = WiFi.hostname().toString().c_str();
-      len = strlen(WiFi.hostname().c_str());
-      char friendlyName[len + 1];
-      strlcpy(friendlyName, WiFi.hostname().c_str(), sizeof(friendlyName));
-
-      char presentationURL[] = "/";
-      uint32_t serialNumber = ESP.getChipId();
-      char modelName[] = "LS-01";
-      const char *modelNumber = friendlyName;
-      //output.printf(ssdpTemplate,
-      output.printf(buf,
-                    URLBase,
-                    friendlyName,
-                    presentationURL,
-                    serialNumber,
-                    modelName,
-                    modelNumber, //modelNumber
-                    (uint8_t)((serialNumber >> 16) & 0xff),
-                    (uint8_t)((serialNumber >> 8) & 0xff),
-                    (uint8_t)serialNumber & 0xff);
-      request->send(200, "text/xml", output);
-    }
-    else
-    {
-      request->send(500);
-    }
-  });
 
   // SSDP.schema(HTTP.client());
 
@@ -1221,6 +1259,7 @@ void AsyncWSBegin()
     root[FPSTR(pgm_loc)] = _configLocation.district;
     root[FPSTR(pgm_curr)] = sholatNameStr(CURRENTTIMEID);
     root[FPSTR(pgm_next)] = sholatNameStr(NEXTTIMEID);
+    root[FPSTR(pgm_timestamp)] = sholat.timestampSholatTimesToday[NEXTTIMEID];
 
     // JsonObject sholattime = root.createNestedObject("sholattime");
     // weather["temp"] = 14.2;
@@ -1242,7 +1281,7 @@ void AsyncWSBegin()
       sholat2["name"] = sholatNameStr(i);
       sholat2["float"] = sholat.times[i];
       sholat2["char"] = sholatTimeArray[i];
-      sholat2["timestamp"] = sholat.timestampSholatTimesToday[i];
+      sholat2[FPSTR(pgm_timestamp)] = sholat.timestampSholatTimesToday[i];
     }
 
     serializeJson(doc, *response);
@@ -1393,6 +1432,7 @@ void onWifiGotIP(WiFiEventStationModeGotIP ipInfo)
 // void onWifiGotIP(const WiFiEventStationModeGotIP &event)
 {
   wifiGotIpFlag = true;
+  WiFi.setAutoReconnect(autoReconnect);
 
   //Serial.printf_P(PSTR("\r\nWifi Got IP: %s\r\n"), ipInfo.ip.toString().c_str ());
   PRINT("\r\nWifi Got IP\r\n");
@@ -3162,7 +3202,9 @@ bool loadHTTPAuth()
 void AsyncWSLoop()
 {
   ArduinoOTA.handle();
+  ws.cleanupClients();
   dnsServer.processNextRequest();
+  MDNS.update();
 
   // static time_t oldTime = localTime;
   //if (localTime != oldTime) {

@@ -276,6 +276,7 @@ const char pgm_offsetAsr[] PROGMEM = "offsetAsr";
 const char pgm_offsetSunset[] PROGMEM = "offsetSunset";
 const char pgm_offsetMaghrib[] PROGMEM = "offsetMaghrib";
 const char pgm_offsetIsha[] PROGMEM = "offsetIsha";
+const char pgm_timestamp[] PROGMEM = "timestamp";
 
 //time
 const char pgm_time[] PROGMEM = "time";

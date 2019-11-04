@@ -1,13 +1,9 @@
 {
-    "name": "Adafruit GFX Library", 
-    "version": "1.5.7", 
-    "keywords": [
-        "display"
-    ], 
     "description": "Adafruit GFX graphics core library, this is the 'core' class that all our other graphics libraries derive from.", 
-    "frameworks": [
-        "arduino"
-    ], 
+    "repository": {
+        "url": "https://github.com/adafruit/Adafruit-GFX-Library", 
+        "type": "git"
+    }, 
     "platforms": [
         "atmelavr", 
         "atmelsam", 
@@ -25,21 +21,7 @@
         "teensy", 
         "timsp430"
     ], 
-    "authors": [
-        {
-            "email": "info@adafruit.com", 
-            "url": null, 
-            "maintainer": true, 
-            "name": "Adafruit"
-        }
-    ], 
-    "repository": {
-        "type": "git", 
-        "url": "https://github.com/adafruit/Adafruit-GFX-Library"
-    }, 
-    "homepage": null, 
     "export": {
-        "include": null, 
         "exclude": [
             "extras", 
             "docs", 
@@ -47,7 +29,25 @@
             "test", 
             "*.doxyfile", 
             "*.pdf"
-        ]
+        ], 
+        "include": null
     }, 
-    "id": 13
+    "authors": [
+        {
+            "maintainer": true, 
+            "name": "Adafruit", 
+            "url": null, 
+            "email": "info@adafruit.com"
+        }
+    ], 
+    "keywords": [
+        "display"
+    ], 
+    "id": 13, 
+    "name": "Adafruit GFX Library", 
+    "frameworks": [
+        "arduino"
+    ], 
+    "version": "1.6.1", 
+    "homepage": null
 }
