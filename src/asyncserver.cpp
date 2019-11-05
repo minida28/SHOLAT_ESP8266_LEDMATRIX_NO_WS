@@ -504,7 +504,7 @@ void AsyncWSBegin()
 
   DEBUGLOG("Starting mDNS responder...\r\n");
   // if (!MDNS.begin(_config.hostname))
-  if (!MDNS.begin("esp8266"))
+  if (!MDNS.begin(_config.hostname))
   { // Start the mDNS responder for esp8266.local
     DEBUGLOG("Error setting up mDNS responder!\r\n");
   }
