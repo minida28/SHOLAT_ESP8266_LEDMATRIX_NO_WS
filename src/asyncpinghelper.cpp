@@ -66,18 +66,18 @@ void PingSetup()
             IPAddress addr(response.addr); //to prevent with no const toString() in 2.3.0
             if (response.answer)
             {
-                DEBUGLOG("%d bytes from %s: icmp_seq=%d ttl=%d time=%d ms\n", response.size, addr.toString().c_str(), response.icmp_seq, response.ttl, response.time);
+                DEBUGLOG("%d bytes from %s: icmp_seq=%d ttl=%i time=%lu ms\n", response.size, addr.toString().c_str(), response.icmp_seq, response.ttl, response.time);
             }
             else
             {
-                DEBUGLOG("no answer yet for %s icmp_seq=%d\n", addr.toString().c_str(), response.icmp_seq);
+                DEBUGLOG("no answer yet for %s icmp_seq=%i\n", addr.toString().c_str(), response.icmp_seq);
             }
             return false; //do not stop
         });
 
         Pings[i].on(false, [](const AsyncPingResponse &response) {
             IPAddress addr(response.addr); //to prevent with no const toString() in 2.3.0
-            DEBUGLOG("total answer from %s sent %d received %d time %d ms\n\n", addr.toString().c_str(), response.total_sent, response.total_recv, response.total_time);
+            DEBUGLOG("total answer from %s sent %d received %i time %lu ms\n\n", addr.toString().c_str(), response.total_sent, response.total_recv, response.total_time);
 
             if (response.total_sent == response.total_recv)
                 internet = true;

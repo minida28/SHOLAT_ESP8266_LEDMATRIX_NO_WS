@@ -68,30 +68,35 @@ const char WL_CONNECTED_Str[] PROGMEM = "Connected";
 const char WL_CONNECT_FAILED_Str[] PROGMEM = "Connection Failed";
 const char WL_CONNECTION_LOST_Str[] PROGMEM = "Connection Lost";
 const char WL_DISCONNECTED_Str[] PROGMEM = "Disconnected";
+const char WL_NO_SHIELD_Str[] PROGMEM = "WL_NO_SHIELD";
+
+// const char pgm_thingspeak_template[] PROGMEM = "%s %sfield1=%s&field2=%s&field3=%s&field4=%s&field5=%s&field6=%s&field7=%s&field8=%s&status=%s HTTP/1.1\r\nHost: %s\r\nX-THINGSPEAKAPIKEY: %s\r\nContent-Type: application/x-www-form-urlencoded\r\n\r\n";
+// const char pgm_thingspeak_template[] PROGMEM = "%s %sfield1=%s HTTP/1.1\r\nHost: %s\r\nX-THINGSPEAKAPIKEY: %s\r\nContent-Type: application/x-www-form-urlencoded\r\n\r\n";
 
 const char *const wifistatus_P[] PROGMEM =
     {
-        //   WL_NO_SHIELD_Str,
         WL_IDLE_STATUS_Str,
         WL_NO_SSID_AVAIL_Str,
         WL_SCAN_COMPLETED_Str,
         WL_CONNECTED_Str,
         WL_CONNECT_FAILED_Str,
         WL_CONNECTION_LOST_Str,
-        WL_DISCONNECTED_Str};
+        WL_DISCONNECTED_Str,
+        WL_NO_SHIELD_Str};
 
-const char NULL_Str[] PROGMEM = "NULL";
+const char OFF_Str[] PROGMEM = "OFF";
 const char STA_Str[] PROGMEM = "STA";
 const char AP_Str[] PROGMEM = "AP";
-const char STA_AP_Str[] PROGMEM = "STA+AP";
+const char STA_AP_Str[] PROGMEM = "AP + STA";
+const char MODE_MAX_Str[] PROGMEM = "MAX_MODE";
 
 const char *const wifimode_P[] PROGMEM =
     {
-        // WL_NO_SHIELD_Str,
-        NULL_Str,
+        OFF_Str,
         STA_Str,
         AP_Str,
-        STA_AP_Str};
+        STA_AP_Str,
+        MODE_MAX_Str};
 
 const char RTC_TIME_VALID_Str[] PROGMEM = "RTC_TIME_VALID";
 const char RTC_LOST_CONFIDENT_Str[] PROGMEM = "RTC_LOST_CONFIDENT";

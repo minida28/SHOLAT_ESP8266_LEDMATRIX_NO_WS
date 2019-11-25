@@ -49,9 +49,10 @@
 
 
 typedef struct {
+  char mode[16] = "AP";
   char hostname[32] = "ESP_XXXX";
-  char ssid[33] = "your_wifi_ssid";
-  char password[65] = "your_wifi_password";
+  char ssid[33] = "";
+  char password[65] = "";
   bool dhcp = true;
   char static_ip[16] = "192.168.10.15";
   char netmask[16] = "255.255.255.0";
