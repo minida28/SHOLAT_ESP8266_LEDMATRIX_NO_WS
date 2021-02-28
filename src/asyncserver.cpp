@@ -197,6 +197,8 @@ void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventTyp
       }
     }
 
+    DEBUGLOG("data: %s\r\n", (char *)data);
+
     if (strncmp_P((char *)data, pgm_schedulepagesholat, strlen_P(pgm_schedulepagesholat)) == 0)
     {
       // clientVisitSholatTimePage = true;
@@ -209,6 +211,22 @@ void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventTyp
     else if (strncmp_P((char *)data, pgm_freeheap, strlen_P(pgm_freeheap)) == 0)
     {
       sendFreeHeapStatusFlag = true;
+    }
+    else if (strncmp_P((char *)data, pgm_btntesttone0,  strlen_P(pgm_btntesttone0)) == 0)
+    {
+      tone0 = true;
+    }
+    else if (strncmp_P((char *)data, pgm_btntesttone1,  strlen_P(pgm_btntesttone1)) == 0)
+    {
+      tone1 = true;
+    }
+    else if (strncmp_P((char *)data, pgm_btntesttone2,  strlen_P(pgm_btntesttone2)) == 0)
+    {
+      tone2 = true;
+    }
+    else if (strncmp_P((char *)data, pgm_btntesttone10,  strlen_P(pgm_btntesttone10)) == 0)
+    {
+      tone10 = true;
     }
     else if (strncmp((char *)data, "/status/datetime", strlen("/status/datetime")) == 0)
     {
@@ -752,6 +770,7 @@ void send_config_network(AsyncWebServerRequest *request)
   // DynamicJsonDocument root(2048);
   StaticJsonDocument<1024> root;
 
+  root[FPSTR(pgm_mode)] = _config.mode;
   root[FPSTR(pgm_hostname)] = _config.hostname;
   root[FPSTR(pgm_ssid)] = _config.ssid;
   root[FPSTR(pgm_password)] = _config.password;

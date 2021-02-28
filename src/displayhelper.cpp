@@ -236,7 +236,7 @@ uint8_t PageAutomaticMode()
     uint32_t iqamahTime = adzanEndTime + (60 * _ledMatrixSettings.iqamahwaittime);
     if (_ledMatrixSettings.pagemode == Automatic)
     {
-        if (atof(bufWatt) >= 2400 || atof(bufAmpere) >= 11.3)
+        if (atof(bufWatt) >= 2400 || atof(bufAmpere) >= currentThreshold)
         {
             currentPageMode0 = 4;
             return 0;

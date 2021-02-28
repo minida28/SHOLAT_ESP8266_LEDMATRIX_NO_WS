@@ -111,6 +111,8 @@ extern uint32_t lastTimePayloadReceived;
 extern char bufWatt[10];
 extern char bufVoltage[10];
 extern char bufAmpere[6];
+extern char bufCurrentThreshold[6];
+extern float currentThreshold;
 
 //
 void connectToMqtt();

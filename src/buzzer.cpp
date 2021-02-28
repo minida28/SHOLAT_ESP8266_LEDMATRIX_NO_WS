@@ -1,8 +1,10 @@
 #include "buzzer.h"
+#include "timehelper.h"
 
 bool alarmState;
 bool tone0;
 bool tone1;
+bool tone2;
 bool tone10;
 
 uint16_t loudestFreq = 2010; //test your buzzer to find its loudest frequency (natural frequency)
@@ -235,6 +237,34 @@ void Tone1(uint8_t pinBuzzer, uint16_t duty)
     //    analogWriteFreq(ANALOGWRITE_OPERATING_FREQUENCY);
 
     tone1 = false;
+  }
+}
+
+void Tone2(uint8_t pinBuzzer, uint16_t duty)
+{
+  static bool sound;
+  static unsigned long startMillis;
+  unsigned int freq = 2375;
+  // if (tone0) {
+  //   tone0 = false;
+  //   startMillis = millis();
+  //   tone(pinBuzzer, freq);
+  //   sound = true;
+  // }
+  // if (sound && millis() - startMillis >= 50) {
+  //   noTone(pinBuzzer);
+  //   sound = false;
+  // }
+
+  if (tone2 && tick200ms)
+  {
+    static int count = 0; 
+    tone(pinBuzzer, freq, 100);
+    count++;
+    if (count == 10) {
+      tone2 = false;
+      count = 0;
+    }
   }
 }
 

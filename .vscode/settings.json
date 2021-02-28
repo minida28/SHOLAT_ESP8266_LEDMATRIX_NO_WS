@@ -27,6 +27,7 @@
     // "arduino.additionalUrls": "",
     "arduino.logLevel": "verbose",
     "arduino.enableUSBDetection": true,
+    "editor.fontSize": 12,
     // "arduino.disableTestingOpen": false,
     // "arduino.skipHeaderProvider": false,
 }

@@ -35,6 +35,14 @@
                 "problemMatcher": [
                     "$platformio"
                 ]
+            },
+            {
+                "type": "PlatformIO",
+                "task": "Upload Filesystem Image (esp12e)",
+                "problemMatcher": [
+                    "$platformio"
+                ],
+                "label": "PlatformIO: Upload Filesystem Image (esp12e)"
             }
         ]
     }

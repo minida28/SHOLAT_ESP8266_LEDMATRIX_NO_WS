@@ -1,6 +1,7 @@
 {
-  "ssid": "OpenWrt",
-  "password": "miqbal123",
+  "mode": "STA",
+  "ssid": "galaxi",
+  "password": "n1n4iqb4l",
   "dhcp": true,
   "static_ip": "192.168.10.15",
   "netmask": "255.255.255.0",

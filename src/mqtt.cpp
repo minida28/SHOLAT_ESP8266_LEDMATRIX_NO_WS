@@ -1,19 +1,13 @@
 
 
+#include <Arduino.h>
 #include "mqtt.h"
+#include "buzzer.h"
 // #include "config.h"
 //#include "FSWebServerLib.h"
 
-#include <Arduino.h>
-
-#define PRINTPORT Serial
+// #define PRINTPORT Serial
 #define DEBUGPORT Serial
-
-#define PRINT(fmt, ...)                      \
-  {                                          \
-    static const char pfmt[] PROGMEM = fmt;  \
-    DEBUGPORT.printf_P(pfmt, ##__VA_ARGS__); \
-  }
 
 #define RELEASE
 
@@ -47,6 +41,8 @@ uint32_t i = 0;
 char bufWatt[10];
 char bufVoltage[10];
 char bufAmpere[6];
+char bufCurrentThreshold[6];
+float currentThreshold = 11.4;
 
 // char bufTopic[maxTopicLen];
 // char bufPayload[maxPayloadLen];
@@ -138,20 +134,20 @@ bool load_config_mqtt()
   strcpy_P(filename, pgm_configfilemqtt);
 
   File file = SPIFFS.open(filename, "r");
-  PRINT("Opening file %s...\r\n", file.name());
+  DEBUGLOG("Opening file %s...\r\n", file.name());
 
   const uint16_t allocSize = 512;
 
   if (!file)
   {
-    PRINT("Failed to open config file\r\n");
+    DEBUGLOG("Failed to open config file\r\n");
     file.close();
     return false;
   }
 
   if (file.size() > allocSize)
   {
-    PRINT("File size %d bytes is larger than allocSize %d bytes!\r\n", file.size(), allocSize);
+    DEBUGLOG("File size %d bytes is larger than allocSize %d bytes!\r\n", file.size(), allocSize);
     file.close();
     return false;
   }
@@ -163,12 +159,12 @@ bool load_config_mqtt()
 
   if (error)
   {
-    PRINT("Failed parsing config MQTT file\r\n");
+    DEBUGLOG("Failed parsing config MQTT file\r\n");
     return false;
   }
 
   // root.prettyPrintTo(PRINTPORT);
-  // PRINT("\r\n");
+  // DEBUGLOG("\r\n");
 
   configMqtt.enabled = root[FPSTR(pgm_mqtt_enabled)];
   strlcpy(configMqtt.server, root[FPSTR(pgm_mqtt_server)], sizeof(configMqtt.server) / sizeof(configMqtt.server[0]));
@@ -200,7 +196,7 @@ bool load_config_mqtt()
   if (strncmp(lwttopicprefix, "", 1) == 0)
   {
     //do nothing
-    PRINT("lwt topic prefix is not available. Do nothing...\r\n");
+    DEBUGLOG("lwt topic prefix is not available. Do nothing...\r\n");
   }
   else
   {
@@ -232,7 +228,7 @@ bool load_config_mqtt()
   if (strcmp(configMqtt.user, "") == 0 || strcmp(configMqtt.pass, "") == 0)
   {
     // do nothing
-    PRINT("configMqtt.user or configMqtt.pass is empty. Do nothing...\r\n");
+    DEBUGLOG("configMqtt.user or configMqtt.pass is empty. Do nothing...\r\n");
   }
   else
   {
@@ -272,10 +268,10 @@ void connectToMqtt()
 {
   // DEBUGLOG("%s\n", __PRETTY_FUNCTION__);
 
-  PRINT("\r\nLoading MQTT config...\r\n");
+  DEBUGLOG("\r\nLoading MQTT config...\r\n");
   if (!load_config_mqtt())
   {
-    PRINT("Failed loading Mqtt config.\r\n");
+    DEBUGLOG("Failed loading Mqtt config.\r\n");
     return;
   }
 
@@ -294,7 +290,7 @@ void connectToMqtt()
   DEBUGLOG("lwtretain: %d\r\n", configMqtt.lwtretain);
   DEBUGLOG("lwtpayload: %s\r\n", configMqtt.lwtpayload);
 
-  PRINT("\r\nConnecting to MQTT...\r\n");
+  DEBUGLOG("\r\nConnecting to MQTT...\r\n");
 
   mqttClient.connect();
 }
@@ -311,13 +307,13 @@ void onMqttDisconnect(AsyncMqttClientDisconnectReason reason)
 
 void onMqttSubscribe(uint16_t packetId, uint8_t qos)
 {
-  PRINT("\r\nSubscribe acknowledged.\r\n\tpacketId: %d\r\n\tqos: %d\r\n", packetId, qos);
+  DEBUGLOG("\r\nSubscribe acknowledged.\r\n\tpacketId: %d\r\n\tqos: %d\r\n", packetId, qos);
   mqttSubscribeFlag = true;
 }
 
 void onMqttUnsubscribe(uint16_t packetId)
 {
-  PRINT("\r\nUnsubscribe acknowledged.\r\n\tpacketId: %d\r\n", packetId);
+  DEBUGLOG("\r\nUnsubscribe acknowledged.\r\n\tpacketId: %d\r\n", packetId);
   mqttUnsubscribeFlag = true;
 }
 
@@ -402,6 +398,7 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
   // const char *msgPayload = const_cast<char *>(payload);
 
   const char *sub1_topic = configMqtt.sub1_topic;
+  const char *sub2_topic = configMqtt.sub2_topic;
 
   //handle energy meter payload
   // if (strncmp(const_cast<char *>(topic), sub1_topic, json[FPSTR(sub1_topic)].measureLength()) == 0)
@@ -444,6 +441,10 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
 
       strlcpy(bufAmpere, ampere, sizeof(bufAmpere) / sizeof(bufAmpere[0]));
       dtostrf(atof(bufAmpere), 0, 2, bufAmpere);
+
+      if (atof(bufAmpere) >= currentThreshold) {
+        tone2 = true;
+      }
     }
 
     // if (wsConnected && clientVisitConfigMqttPage)
@@ -454,11 +455,22 @@ void onMqttMessage(char *topic, char *payload, AsyncMqttClientMessageProperties 
     //   ws.text(clientID, bufPayload);
     // }
   }
+  // handle current threshold
+  else if (strncmp(bufTopic, sub2_topic, strlen(sub2_topic)) == 0)
+  {
+    currentThreshold = atof(bufPayload);
+    dtostrf(atof(bufPayload), 0, 1, bufCurrentThreshold);
+    DEBUGLOG("Current Threshold: %.1f\r\n", currentThreshold);
+  }
+  else {
+      DEBUGLOG("WARNING: Received topic do not matched.\r\n");
+      return;
+  }
 }
 
 void onMqttPublish(uint16_t packetId)
 {
-  PRINT("\r\nPublish acknowledged.\r\n\tpacketId: %d\r\n", packetId);
+  DEBUGLOG("\r\nPublish acknowledged.\r\n\tpacketId: %d\r\n", packetId);
   mqttPublishFlag = true;
 }
 
@@ -501,8 +513,8 @@ void SetMqttClientId()
 
 void MqttConnectedCb()
 {
-  // PRINT("Connected to MQTT.\r\n\tSession present: %d\r\n", sessionPresent);
-  PRINT("Connected to MQTT.\r\n");
+  // DEBUGLOG("Connected to MQTT.\r\n\tSession present: %d\r\n", sessionPresent);
+  DEBUGLOG("Connected to MQTT.\r\n");
 
   // const char *fileName = pgm_configfilemqttpubsub;
 
@@ -511,20 +523,20 @@ void MqttConnectedCb()
   strcpy_P(fileName, pgm_configfilemqttpubsub);
 
   File file = SPIFFS.open(fileName, "r");
-  PRINT("Opening file %s...\r\n", fileName);
+  DEBUGLOG("Opening file %s...\r\n", fileName);
 
   const uint16_t allocSize = 512;
 
   if (!file)
   {
-    PRINT("Failed to open config file\r\n");
+    DEBUGLOG("Failed to open config file\r\n");
     file.close();
     return;
   }
 
   if (file.size() > allocSize)
   {
-    PRINT("File size %d bytes is larger than allocSize %d bytes!\r\n", file.size(), allocSize);
+    DEBUGLOG("File size %d bytes is larger than allocSize %d bytes!\r\n", file.size(), allocSize);
     file.close();
     return;
   }
@@ -536,7 +548,7 @@ void MqttConnectedCb()
 
   if (error)
   {
-    PRINT("Failed parsing config MQTT file\r\n");
+    DEBUGLOG("Failed parsing config MQTT file\r\n");
     return;
   }
 
@@ -568,15 +580,27 @@ void MqttConnectedCb()
       json[FPSTR(pgm_pub1_retain)], //retain
       json[FPSTR(pgm_pub1_payload)] //payload
   );
-  PRINT(
+  DEBUGLOG(
       "\r\nPublishing packetId: %d\r\n\ttopic: %s\r\n\tQoS: %d\r\n\tretain: %d\r\n\tpayload: %s\r\n",
       packetIdPub1, bufPub1_topic, pub1_qos, pub1_retain, pub1_payload);
 
+  // // subscribe 1
+  // const char *sub1_topic = json[FPSTR(pgm_sub1_topic)];
+  // uint8_t sub1_qos = json[FPSTR(pgm_sub1_qos)];
+  // uint16_t packetIdSub1 = mqttClient.subscribe(sub1_topic, sub1_qos);
+  // DEBUGLOG("\r\nSubscribing packetId: %d\r\n\ttopic: %s\r\n\tQoS: %d\r\n", packetIdSub1, sub1_topic, sub1_qos);
+
   // subscribe 1
-  const char *sub1_topic = json[FPSTR(pgm_sub1_topic)];
-  uint8_t sub1_qos = json[FPSTR(pgm_sub1_qos)];
-  uint16_t packetIdSub1 = mqttClient.subscribe(sub1_topic, sub1_qos);
-  PRINT("\r\nSubscribing packetId: %d\r\n\ttopic: %s\r\n\tQoS: %d\r\n", packetIdSub1, sub1_topic, sub1_qos);
+  strlcpy(configMqtt.sub1_topic, json[FPSTR(pgm_sub1_topic)], sizeof(configMqtt.sub1_topic));
+  configMqtt.sub1_qos = json[FPSTR(pgm_sub1_qos)];
+  uint16_t packetIdSub1 = mqttClient.subscribe(configMqtt.sub1_topic, configMqtt.sub1_qos);
+  DEBUGLOG("\r\nSubscribing packetId: %d\r\n\ttopic: %s\r\n\tQoS: %d\r\n", packetIdSub1, configMqtt.sub1_topic, configMqtt.sub1_qos);
+
+  // subscribe 2
+  strlcpy(configMqtt.sub2_topic, json[FPSTR(pgm_sub2_topic)], sizeof(configMqtt.sub2_topic));
+  configMqtt.sub2_qos = json[FPSTR(pgm_sub2_qos)];
+  uint16_t packetIdSub2 = mqttClient.subscribe(configMqtt.sub2_topic, configMqtt.sub2_qos);
+  DEBUGLOG("\r\nSubscribing packetId: %d\r\n\ttopic: %s\r\n\tQoS: %d\r\n", packetIdSub2, configMqtt.sub2_topic, configMqtt.sub2_qos);
 
   //subscribe 2
   if (false)
@@ -584,24 +608,24 @@ void MqttConnectedCb()
     const char *sub2_topic = json[FPSTR(pgm_sub2_topic)];
     uint8_t sub2_qos = json[FPSTR(pgm_sub2_qos)];
     uint16_t packetIdSub2 = mqttClient.subscribe(sub2_topic, sub2_qos);
-    PRINT("\r\nSubscribing packetId: %d\r\n\ttopic: %s\r\n\tQoS: %d\r\n", packetIdSub2, sub2_topic, sub2_qos);
+    DEBUGLOG("\r\nSubscribing packetId: %d\r\n\ttopic: %s\r\n\tQoS: %d\r\n", packetIdSub2, sub2_topic, sub2_qos);
   }
 }
 
 void MqttDisconnectedCb()
 {
-  PRINT("Disconnected from MQTT.\r\n");
+  DEBUGLOG("Disconnected from MQTT.\r\n");
 
   if (configMqtt.enabled)
   {
     if (WiFi.status() == WL_CONNECTED)
     {
-      PRINT("Turn on mqttReconnectTimer.\r\n");
+      DEBUGLOG("Turn on mqttReconnectTimer.\r\n");
       mqttReconnectTimer.once(5, connectToMqtt);
     }
     else
     {
-      PRINT("WiFi is disconnected. Cannot start mqttReconnectTimer.\r\n");
+      DEBUGLOG("WiFi is disconnected. Cannot start mqttReconnectTimer.\r\n");
     }
   }
 }
@@ -611,7 +635,7 @@ void mqtt_loop()
   if (gotWifiForMqttFlag)
   {
     gotWifiForMqttFlag = false;
-    PRINT("gotWifiForMqttFlag\r\n");
+    DEBUGLOG("gotWifiForMqttFlag\r\n");
 
     // if (!load_config_mqtt())
     // {
@@ -622,21 +646,21 @@ void mqtt_loop()
     {
       if (!mqttClient.connected())
       {
-        PRINT("Turn on mqttReconnectTimer.\r\n");
+        DEBUGLOG("Turn on mqttReconnectTimer.\r\n");
         mqttReconnectTimer.detach();
         mqttReconnectTimer.once(5, connectToMqtt);
       }
     }
     else
     {
-      PRINT("MQTT is NOT enabled in the config.\r\n");
+      DEBUGLOG("MQTT is NOT enabled in the config.\r\n");
     }
   }
 
   if (wifiDisconnectedForMqttFlag)
   {
     wifiDisconnectedForMqttFlag = false;
-    PRINT("wifiDisconnectedForMqttFlag\r\n");
+    DEBUGLOG("wifiDisconnectedForMqttFlag\r\n");
   }
 
   static bool mqttEnabled = configMqtt.enabled;
@@ -647,19 +671,19 @@ void mqtt_loop()
     {
       if (!mqttClient.connected())
       {
-        PRINT("Turn on mqttReconnectTimer.\r\n");
+        DEBUGLOG("Turn on mqttReconnectTimer.\r\n");
         mqttReconnectTimer.detach();
         mqttReconnectTimer.once(5, connectToMqtt);
       }
     }
     else
     {
-      PRINT("MQTT is disabled in the config.\r\n");
+      DEBUGLOG("MQTT is disabled in the config.\r\n");
       if (mqttClient.connected())
       {
-        PRINT("Turning off mqttReconnectTimer.\r\n");
+        DEBUGLOG("Turning off mqttReconnectTimer.\r\n");
         mqttReconnectTimer.detach();
-        PRINT("MQTT is connected. Disconnecting MQTT...\r\n");
+        DEBUGLOG("MQTT is connected. Disconnecting MQTT...\r\n");
         mqttClient.disconnect();
       }
     }

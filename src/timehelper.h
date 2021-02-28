@@ -1,12 +1,24 @@
 #ifndef timehelper_h
 #define timehelper_h
 
+// official example here:
+// https://github.com/esp8266/Arduino/blob/master/libraries/esp8266/examples/NTP-TZ-DST/NTP-TZ-DST.ino
+
 // #include <time.h>
 #include <sys/time.h>  // struct timeval
 #include <coredecls.h> // settimeofday_cb()
 #include "rtchelper.h"
 #include "locationhelper.h"
 #include <Ticker.h>
+#include <TZ.h>
+#include <coredecls.h>                  // settimeofday_cb()
+#include <Schedule.h>
+#include <PolledTimeout.h>
+
+#include <time.h>                       // time() ctime()
+#include <sys/time.h>                   // struct timeval
+
+#include <sntp.h>                       // sntp_servermode_dhcp()
 
 /*==============================================================================*/
 /* Useful Constants */
@@ -44,6 +56,7 @@ extern "C"
 
 extern Ticker waitingForInternetConnectedTimer;
 
+extern bool tick200ms;
 extern bool tick1000ms;
 extern bool tick3000ms;
 extern bool state500ms;

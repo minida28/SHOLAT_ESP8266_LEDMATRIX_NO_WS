@@ -6,6 +6,10 @@
 #include "rtchelper.h"
 // #include "EspGoodies.h"
 #include "asyncpinghelper.h"
+#include <TZ.h>
+
+#define MYTZ TZ_Asia_Jakarta
+
 
 #define PRINTPORT Serial
 #define DEBUGPORT Serial
@@ -36,6 +40,7 @@
 #define DEBUGLOGLN(...)
 #endif
 
+bool tick200ms = false;
 bool tick1000ms = false;
 bool tick3000ms = false;
 bool state500ms = false;
@@ -80,6 +85,7 @@ uint16_t syncInterval;      ///< Interval to set periodic time sync
 uint16_t shortSyncInterval; ///< Interval to set periodic time sync until first synchronization.
 uint16_t longSyncInterval;  ///< Interval to set periodic time sync
 
+Ticker tick200msTimer;
 Ticker state250msTimer;
 Ticker state500msTimer;
 Ticker syncTimeFromRtcTicker;
@@ -96,16 +102,20 @@ float TimezoneFloat()
   if (!y2k38mode)
   {
     rawtime = time(nullptr);
+    // Serial.println("y2k38mode NO");
   }
   else if (y2k38mode)
   {
     rawtime = time(nullptr) + 2145916800 + 3133696;
+    // Serial.println("y2k38mode YES");
   }
 
   strftime(buffer, 6, "%z", localtime(&rawtime));
+  // Serial.println(buffer);
 
   char bufTzHour[4];
   strlcpy(bufTzHour, buffer, sizeof(bufTzHour));
+  // Serial.println(bufTzHour);
   int8_t hour = atoi(bufTzHour);
 
   char bufTzMin[4];
@@ -346,6 +356,12 @@ void FlipWaitingForInternet()
   waitingForInternet = false;
 }
 
+void Tick200ms()
+{
+  //  static boolean state250ms;
+  tick200ms = true;
+}
+
 void FlipState250ms()
 {
   //  static boolean state250ms;
@@ -393,8 +409,8 @@ void time_is_set()
 
   DEBUGLOG("time(nullptr): %u, (uint32_t)tv.tv_sec: %u\r\n\r\n", time(nullptr), (uint32_t)cbtime.tv_sec);
 
-  // gettimeofday(&tv, nullptr);
-  clock_gettime(0, &tp);
+  gettimeofday(&tv, nullptr);
+  // clock_gettime(0, &tp);
 
   now = time(nullptr);
 
@@ -456,6 +472,7 @@ void time_is_set()
 
 void TimeSetup()
 {
+  tick200msTimer.attach(0.2, Tick200ms);
   state250msTimer.attach(0.25, FlipState250ms);
 
   settimeofday_cb(time_is_set);
@@ -463,12 +480,18 @@ void TimeSetup()
   // configTZ(TZ_Asia_Jakarta);
   // configTZ(_configLocation.timezonestring);
   // configTZ("WIB-7");
-  setenv("TZ", _configLocation.timezonestring, 1 /*overwrite*/);
-  tzset();
+
+  // setenv("TZ", _configLocation.timezonestring, 1 /*overwrite*/);
+  // tzset();
+
+  // configTime(TZ_Asia_Jakarta, "id.pool.ntp.org");
+  configTime(_configLocation.timezonestring, _configTime.ntpserver_0, _configTime.ntpserver_1, _configTime.ntpserver_2);
+  yield();
 
   if (_configTime.enablentp)
   {
-    configTime(0, 0, _configTime.ntpserver_0, _configTime.ntpserver_1, _configTime.ntpserver_2);
+    configTime(_configLocation.timezonestring, _configTime.ntpserver_0, _configTime.ntpserver_1, _configTime.ntpserver_2);
+    yield();
   }
 
   // if (_configTime.enablertc && (!internetAccess || lastSyncByNtp == 0 || WiFi.status() != WL_CONNECTED || !_configTime.enablentp))
@@ -505,7 +528,7 @@ void TimeLoop()
 
     if (ntpEnabled)
     {
-      configTime(0, 0, _configTime.ntpserver_0, _configTime.ntpserver_1, _configTime.ntpserver_2);
+      // configTime(0, 0, _configTime.ntpserver_0, _configTime.ntpserver_1, _configTime.ntpserver_2);
       nextSync = utcTime + 3600;
     }
     else
@@ -588,6 +611,7 @@ void TimeLoop()
 
   gettimeofday(&tv, nullptr);
   clock_gettime(0, &tp);
+  // Serial.printf("timezone:  %s\n", getenv("TZ") ? : "(none)");
 
   now = time(nullptr);
 
@@ -718,6 +742,7 @@ void TimeLoop()
 
     dt = Rtc.GetDateTime();
     DEBUGLOGLN("RTC GMT   date/time: %s GMT\r\n", GetRtcDateTimeStr(dt));
+    
 #endif
   }
 }

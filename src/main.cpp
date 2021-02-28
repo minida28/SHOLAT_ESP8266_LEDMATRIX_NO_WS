@@ -287,8 +287,11 @@ void MainLoop()
 
     save_config_location();
 
-    setenv("TZ", _configLocation.timezonestring, 1 /*overwrite*/);
-    tzset();
+    // setenv("TZ", _configLocation.timezonestring, 1 /*overwrite*/);
+    // tzset();
+
+    configTime(TZ_Asia_Jakarta, "id.pool.ntp.org");
+    yield();
 
     TimeLoop();
 
@@ -304,8 +307,11 @@ void MainLoop()
 
     load_config_location();
 
-    setenv("TZ", _configLocation.timezonestring, 1 /*overwrite*/);
-    tzset();
+    // setenv("TZ", _configLocation.timezonestring, 1 /*overwrite*/);
+    // tzset();
+
+    configTime(TZ_Asia_Jakarta, "id.pool.ntp.org");
+    yield();
 
     TimeLoop();
 
@@ -434,6 +440,7 @@ void MainLoop()
   buzzer(BUZZER, _ledMatrixSettings.brightness);
   Tone0(BUZZER, _ledMatrixSettings.brightness);
   Tone1(BUZZER, _ledMatrixSettings.brightness);
+  Tone2(BUZZER, _ledMatrixSettings.brightness);
   Tone10(BUZZER, duration);
   DisplayLoop();
   mqtt_loop();
@@ -441,6 +448,8 @@ void MainLoop()
   encoder0PosIncreasing = false;
   encoder0PosDecreasing = false;
 
+  // tick250ms = false;
+  tick200ms = false;
   tick500ms = false;
   tick1000ms = false;
   tick3000ms = false;
